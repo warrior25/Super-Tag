@@ -1,4 +1,4 @@
-package com.example.supertag
+package com.huikka.supertag
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
