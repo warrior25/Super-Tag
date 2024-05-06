@@ -1,6 +1,7 @@
 package com.huikka.supertag
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Bundle
@@ -14,7 +15,10 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
+import com.huikka.supertag.data.LoginDataSource
+import com.huikka.supertag.data.LoginRepository
 import com.huikka.supertag.databinding.ActivityMainBinding
+import com.huikka.supertag.ui.login.LoginActivity
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,6 +42,17 @@ class MainActivity : AppCompatActivity() {
                 .setAction("Action", null).show()
         }
 
+        val loginDataSource = LoginDataSource()
+        val loginRepository = LoginRepository(loginDataSource)
+
+        if (!loginRepository.isLoggedIn) {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+        }
+
+        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        val locationListener = ChaserLocationListener()
+
         val requestPermissionLauncher =
             registerForActivityResult(
                 ActivityResultContracts.RequestPermission()
@@ -48,11 +63,10 @@ class MainActivity : AppCompatActivity() {
                     // same time, respect the user's decision. Don't link to system
                     // settings in an effort to convince the user to change their
                     // decision.
+                } else {
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10f, locationListener)
                 }
             }
-
-        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        val locationListener = ChaserLocationListener()
 
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -63,9 +77,9 @@ class MainActivity : AppCompatActivity() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             requestPermissionLauncher.launch(
-                Manifest.permission.ACCESS_FINE_LOCATION)
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
         }
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10f, locationListener)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
