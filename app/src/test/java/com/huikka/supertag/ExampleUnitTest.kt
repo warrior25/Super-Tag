@@ -1,4 +1,4 @@
-package com.example.supertag
+package com.huikka.supertag
 
 import org.junit.Test
 
