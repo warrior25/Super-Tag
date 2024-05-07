@@ -5,7 +5,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import android.util.Patterns
 import com.huikka.supertag.data.LoginRepository
-import com.huikka.supertag.data.Result
 
 import com.huikka.supertag.R
 
@@ -19,11 +18,13 @@ class LoginViewModel(private val loginRepository: LoginRepository) : ViewModel()
 
     suspend fun login(username: String, password: String) {
         // can be launched in a separate asynchronous job
-        val result = loginRepository.login(username, password)
+        val err = loginRepository.login(username, password)
 
-        if (result is Result.Success) {
+        if (err == null) {
+            val displayName = loginRepository.user?.displayName ?: ""
+            val userId = loginRepository.user?.uid ?: ""
             _loginResult.value =
-                LoginResult(success = LoggedInUserView(displayName = result.data.displayName, userId = result.data.userId))
+                LoginResult(success = LoggedInUserView(displayName, userId))
         } else {
             _loginResult.value = LoginResult(error = R.string.login_failed)
         }

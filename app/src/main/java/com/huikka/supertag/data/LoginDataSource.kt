@@ -2,9 +2,9 @@ package com.huikka.supertag.data
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import com.huikka.supertag.data.model.LoggedInUser
 import kotlinx.coroutines.tasks.await
 import java.io.IOException
 
@@ -15,30 +15,44 @@ class LoginDataSource {
 
     private var auth: FirebaseAuth = Firebase.auth
 
-    suspend fun login(email: String, password: String): Result<LoggedInUser> {
-        var result: Result<LoggedInUser>? = null
-
+    suspend fun login(email: String, password: String): Error? {
+        var err: Error? = null
         try {
             auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        val uid = auth.uid ?: ""
-                        val displayName = auth.currentUser?.displayName ?: ""
-                        val user = LoggedInUser(uid, displayName)
-                        result = Result.Success(user)
-                    } else {
+                    if (!task.isSuccessful) {
                         Log.e("LOGIN", task.exception.toString())
-                        result = Result.Error(IOException("Error logging in", task.exception))
+                        err = Error(IOException("Error logging in", task.exception))
                     }
                 }.await()
         } catch (e: Throwable) {
-            return Result.Error(IOException("Error logging in", e))
+            err = Error(IOException("Error logging in", e))
         }
 
-        return result!!
+        return err
     }
 
-    fun logout() {
-        auth.signOut()
+    fun logout(): Error? {
+        try {
+            auth.signOut()
+        } catch (e: Throwable) {
+            return Error(IOException("Error logging out", e))
+        }
+        return null
+    }
+
+    fun getCurrentUser() : FirebaseUser? {
+        return auth.currentUser
+    }
+
+    suspend fun register(email: String, password: String, displayName: String): Error? {
+        var err : Error? = null
+        auth.createUserWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    err = Error(IOException("Error registering", task.exception))
+                }
+            }.await()
+        return err
     }
 }

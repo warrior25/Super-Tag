@@ -1,6 +1,6 @@
 package com.huikka.supertag.data
 
-import com.huikka.supertag.data.model.LoggedInUser
+import com.google.firebase.auth.FirebaseUser
 
 /**
  * Class that requests authentication and user information from the remote data source and
@@ -9,38 +9,19 @@ import com.huikka.supertag.data.model.LoggedInUser
 
 class LoginRepository(val dataSource: LoginDataSource) {
 
-    // in-memory cache of the loggedInUser object
-    var user: LoggedInUser? = null
-        private set
+    var user: FirebaseUser? = dataSource.getCurrentUser()
 
-    val isLoggedIn: Boolean
-        get() = user != null
+    val isLoggedIn: Boolean = user != null
 
-    init {
-        // If user credentials will be cached in local storage, it is recommended it be encrypted
-        // @see https://developer.android.com/training/articles/keystore
-        user = null
+    suspend fun login(username: String, password: String): Error? {
+        return dataSource.login(username, password)
     }
 
-    fun logout() {
-        user = null
-        dataSource.logout()
+    suspend fun register(username: String, password: String, displayName: String): Error? {
+        return dataSource.register(username, password, displayName)
     }
 
-    suspend fun login(username: String, password: String): Result<LoggedInUser> {
-        // handle login
-        val result = dataSource.login(username, password)
-
-        if (result is Result.Success) {
-            setLoggedInUser(result.data)
-        }
-
-        return result
-    }
-
-    private fun setLoggedInUser(loggedInUser: LoggedInUser) {
-        this.user = loggedInUser
-        // If user credentials will be cached in local storage, it is recommended it be encrypted
-        // @see https://developer.android.com/training/articles/keystore
+    fun logout(): Error? {
+        return dataSource.logout()
     }
 }
