@@ -5,6 +5,7 @@ plugins {
 }
 
 android {
+
     namespace = "com.huikka.supertag"
     compileSdk = 34
 
