@@ -43,4 +43,8 @@
         libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
+    <string name="avatar">Avatar</string>
+    <string name="game_id">Game ID</string>
+    <string name="join">Join</string>
+    <string name="create_game">Create Game</string>
 </resources>
