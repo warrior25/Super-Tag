@@ -5,6 +5,7 @@ plugins {
 }
 
 android {
+
     namespace = "com.huikka.supertag"
     compileSdk = 34
 
@@ -50,6 +51,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.0.0"))
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-database:21.0.0")
+    implementation("androidx.activity:activity:1.9.0")
     implementation("com.google.firebase:firebase-auth:23.0.0")
     implementation("androidx.annotation:annotation:1.7.1")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")

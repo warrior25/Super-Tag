@@ -52,4 +52,8 @@
     <string name="invalid_username">Not a valid username</string>
     <string name="invalid_password">Password must be >5 characters</string>
     <string name="login_failed">"Login failed"</string>
+    <string name="avatar">Avatar</string>
+    <string name="game_id">Game ID</string>
+    <string name="join">Join</string>
+    <string name="create_game">Create Game</string>
 </resources>
