@@ -16,9 +16,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.huikka.supertag.data.Dao
-import com.huikka.supertag.data.LoginDataSource
-import com.huikka.supertag.data.LoginRepository
+import com.huikka.supertag.data.AuthDao
+import com.huikka.supertag.data.GameDao
 import com.huikka.supertag.data.model.Game
 import com.huikka.supertag.data.model.Player
 import com.huikka.supertag.ui.login.LoginActivity
@@ -28,8 +27,8 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    private var db = Dao()
-    private lateinit var loginRepository: LoginRepository
+    private var db = GameDao()
+    private var auth = AuthDao()
 
     // UI elements
     private lateinit var joinGameButton: Button
@@ -62,15 +61,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Setup firebase user authentication
-        val loginDataSource = LoginDataSource()
-        loginRepository = LoginRepository(loginDataSource)
-
-        if (!loginRepository.isLoggedIn) {
+        if (!auth.isLoggedIn) {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         } else {
-            Log.d("LOGIN", loginRepository.user?.uid!!)
+            Log.d("LOGIN", auth.user?.uid!!)
         }
 
         val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
@@ -121,7 +116,7 @@ class MainActivity : AppCompatActivity() {
             Game(
                 gameId, chasers = listOf(
                     Player(
-                        loginRepository.user?.uid!!, loginRepository.user?.displayName!!
+                        auth.user?.uid!!, auth.user?.displayName!!
                     )
                 )
             )
@@ -141,7 +136,7 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun joinGame(gameId: String) {
         val err = db.addChaser(
-            Player(loginRepository.user?.uid!!, loginRepository.user?.displayName!!),
+            Player(auth.user?.uid!!, auth.user?.displayName!!),
             gameId
         )
         if (err != null) {

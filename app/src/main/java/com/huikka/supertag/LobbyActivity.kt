@@ -5,15 +5,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.huikka.supertag.data.Dao
-import com.huikka.supertag.data.LoginDataSource
-import com.huikka.supertag.data.LoginRepository
+import com.huikka.supertag.data.AuthDao
+import com.huikka.supertag.data.GameDao
 
 class LobbyActivity : AppCompatActivity() {
 
-    private lateinit var loginRepository: LoginRepository
-    private var db = Dao()
+    private val db = GameDao()
+    private val auth = AuthDao()
     private lateinit var gameId: String
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -25,13 +25,9 @@ class LobbyActivity : AppCompatActivity() {
         }
 
         gameId = intent.getStringExtra("GAME_ID")!!
-
-        // Setup firebase user authentication
-        val loginDataSource = LoginDataSource()
-        loginRepository = LoginRepository(loginDataSource)
     }
 
     private suspend fun leaveGame() {
-        db.removeChaser(loginRepository.user?.uid!!, gameId)
+        db.removeChaser(auth.user?.uid!!, gameId)
     }
 }

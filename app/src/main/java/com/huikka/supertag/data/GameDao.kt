@@ -8,7 +8,7 @@ import com.huikka.supertag.data.model.Game
 import com.huikka.supertag.data.model.Player
 import kotlinx.coroutines.tasks.await
 
-class Dao {
+class GameDao {
 
     private var db = Firebase.firestore
     private fun getGameFromDocument(doc: DocumentSnapshot): Game? {
