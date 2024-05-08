@@ -16,4 +16,10 @@ data class Game(
     val headStart: Int = 10,
     val nextRunnerLocationUpdate: DateTime? = null,
     val lastRunnerLocationUpdate: DateTime? = null
-)
+) {
+    // No-arg constructor for deserialization
+    constructor() : this(
+        id = "",
+        chasers = emptyList()
+    )
+}

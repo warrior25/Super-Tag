@@ -16,9 +16,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.huikka.supertag.data.Dao
 import com.huikka.supertag.data.LoginDataSource
 import com.huikka.supertag.data.LoginRepository
 import com.huikka.supertag.data.model.Game
@@ -27,11 +25,10 @@ import com.huikka.supertag.ui.login.LoginActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 class MainActivity : AppCompatActivity() {
 
-    private var db = Firebase.firestore
+    private var db = Dao()
     private lateinit var loginRepository: LoginRepository
 
     // UI elements
@@ -112,17 +109,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun hostGame() {
-        var randomCode: String
+        var gameId: String
         while (true) {
-            randomCode = List(6) { ('A'..'Z').random() }.joinToString("")
-            if (isCodeUnique(randomCode)) {
+            gameId = List(6) { ('A'..'Z').random() }.joinToString("")
+            if (!db.checkGameExists(gameId)) {
                 break
             }
         }
 
-        db.collection("games").add(
+        val err = db.createGame(
             Game(
-                randomCode, chasers = listOf(
+                gameId, chasers = listOf(
                     Player(
                         loginRepository.user?.uid!!, loginRepository.user?.displayName!!
                     )
@@ -130,43 +127,39 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        if (err != null) {
+            Log.e("HOST", "Failed to host game: $err")
+            return
+        }
+
         Toast.makeText(
-            applicationContext, "Created game $randomCode", Toast.LENGTH_LONG
+            applicationContext, "Created game $gameId", Toast.LENGTH_LONG
         ).show()
 
-    }
-
-    private suspend fun isCodeUnique(code: String): Boolean {
-        val querySnapshot = db.collection("games").whereEqualTo("id", code).get().await()
-        return querySnapshot.isEmpty
+        startLobbyActivity(gameId)
     }
 
     private suspend fun joinGame(gameId: String) {
-        val gameRef = db.collection("games").whereEqualTo("id", gameId).get().await()
-        if (!gameRef.isEmpty) {
-            // Game exists, join the game
-            gameRef.documents[0].reference.update(
-                "chasers", FieldValue.arrayUnion(loginRepository.user?.uid!!)
-            )
-            Toast.makeText(
-                applicationContext, "Joined game $gameId", Toast.LENGTH_LONG
-            ).show()
-        } else {
-            // Game does not exist
+        val err = db.addChaser(
+            Player(loginRepository.user?.uid!!, loginRepository.user?.displayName!!),
+            gameId
+        )
+        if (err != null) {
             Toast.makeText(
                 applicationContext, "Game $gameId does not exist", Toast.LENGTH_LONG
             ).show()
+            return
         }
+        Toast.makeText(
+            applicationContext, "Joined game $gameId", Toast.LENGTH_LONG
+        ).show()
+
+        startLobbyActivity(gameId)
     }
 
-    suspend fun leaveGame(gameId: String) {
-        val gameRef = db.collection("games").whereEqualTo("id", gameId).get().await()
-        if (!gameRef.isEmpty) {
-            gameRef.documents[0].reference.update(
-                "players", FieldValue.arrayRemove(loginRepository.user?.uid!!)
-            )
-        } else {
-            Log.e("MainActivity", "Game does not exist")
-        }
+    private fun startLobbyActivity(gameId: String) {
+        val intent = Intent(this, LobbyActivity::class.java)
+        intent.putExtra("GAME_ID", gameId)
+        startActivity(intent)
     }
 }
