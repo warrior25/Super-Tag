@@ -46,11 +46,10 @@ class PlayerListAdapter(private val playerList: ArrayList<Player>, private val c
         fun bind(player: Player, checkedPosition: Int) {
             playerName.text = player.name
             if (checkedPosition == adapterPosition) {
-                playerName.setBackgroundResource(R.color.blue)
+                playerName.setBackgroundResource(R.drawable.player_selected)
             } else {
-                playerName.setBackgroundResource(R.color.white)
+                playerName.setBackgroundResource(R.drawable.player_unselected)
             }
-
         }
 
         companion object {
