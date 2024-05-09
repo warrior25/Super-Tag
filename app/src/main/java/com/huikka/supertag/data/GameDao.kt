@@ -2,6 +2,7 @@ package com.huikka.supertag.data
 
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.huikka.supertag.data.model.Game
@@ -11,6 +12,11 @@ import kotlinx.coroutines.tasks.await
 class GameDao {
 
     private var db = Firebase.firestore
+
+    fun getDatabase(): FirebaseFirestore {
+        return db
+    }
+
     private fun getGameFromDocument(doc: DocumentSnapshot): Game? {
         return doc.toObject(Game::class.java)
     }

@@ -1,6 +1,7 @@
 package com.huikka.supertag
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
@@ -10,6 +11,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.huikka.supertag.data.AuthDao
 import com.huikka.supertag.data.GameDao
+import com.huikka.supertag.data.model.Game
 import com.huikka.supertag.data.model.Player
 
 class LobbyActivity : AppCompatActivity() {
@@ -18,6 +20,7 @@ class LobbyActivity : AppCompatActivity() {
     private val auth = AuthDao()
     private lateinit var gameId: String
 
+    private val database = db.getDatabase()
     private var players: ArrayList<Player> = ArrayList()
     private val adapter = PlayerListAdapter(players, this)
 
@@ -35,10 +38,7 @@ class LobbyActivity : AppCompatActivity() {
         val gameIdView = findViewById<TextView>(R.id.game_id)
         gameIdView.text = gameId
 
-        // Just for testing until players are fetched from DB
-        players.add(Player(id = "1", name = "Player 1"))
-        players.add(Player(id = "2", name = "Player 2"))
-        players.add(Player(id = "3", name = "Player 3"))
+        getPlayers()
 
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
         recyclerView.adapter = adapter
@@ -52,4 +52,22 @@ class LobbyActivity : AppCompatActivity() {
     private suspend fun leaveGame() {
         db.removeChaser(auth.user?.uid!!, gameId)
     }
+
+    private fun getPlayers() {
+        database.collection("games").whereEqualTo(/* field = */ "id", /* value = */ gameId)
+            .addSnapshotListener { value, e ->
+                if (e != null) {
+                    Log.w("Error", "Listen failed.", e)
+                    return@addSnapshotListener
+                }
+
+                val game = value!!.documents[0].toObject(Game::class.java)
+                for (player in game!!.chasers) {
+                    players.add(player)
+                }
+                adapter.notifyDataSetChanged()
+
+            }
+    }
+
 }
