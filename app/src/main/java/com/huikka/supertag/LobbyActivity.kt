@@ -57,9 +57,6 @@ class LobbyActivity : AppCompatActivity() {
         leaveButton.setOnClickListener {
             lifecycleScope.launch {
                 leaveGame()
-                if (isHost) {
-                    db.removeGame(gameId)
-                }
             }
         }
 
@@ -77,9 +74,9 @@ class LobbyActivity : AppCompatActivity() {
         }
     }
 
-    suspend fun leaveGame() {
+    private suspend fun leaveGame() {
         if (isHost) {
-            //TODO: remove whole game
+            db.removeGame(gameId)
         } else {
             db.removeChaser(auth.user?.uid!!, gameId)
         }
