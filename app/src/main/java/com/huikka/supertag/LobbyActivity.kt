@@ -66,8 +66,6 @@ class LobbyActivity : AppCompatActivity() {
                     players.add(player)
                 }
                 adapter.notifyDataSetChanged()
-
             }
     }
-
 }

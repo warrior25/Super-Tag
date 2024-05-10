@@ -44,11 +44,13 @@ class PlayerListAdapter(private val playerList: ArrayList<Player>, private val c
         private val playerName: TextView = itemView.findViewById(R.id.playerName)
 
         fun bind(player: Player, checkedPosition: Int) {
-            playerName.text = player.name
             if (checkedPosition == adapterPosition) {
                 playerName.setBackgroundResource(R.drawable.player_selected)
+                playerName.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.runner, 0)
+
             } else {
                 playerName.setBackgroundResource(R.drawable.player_unselected)
+                playerName.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
             }
         }
 
