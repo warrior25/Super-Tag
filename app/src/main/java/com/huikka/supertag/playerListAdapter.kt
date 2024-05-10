@@ -1,6 +1,5 @@
 package com.huikka.supertag
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,7 +10,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.huikka.supertag.data.model.Player
 import kotlin.random.Random
 
-class PlayerListAdapter(private val playerList: ArrayList<Player>, private val context: Context) :
+class PlayerListAdapter(
+    private val playerList: ArrayList<Player>,
+    private val isHost: Boolean,
+) :
     ListAdapter<Player, PlayerListAdapter.PlayerViewHolder>(PlayerComparator()) {
 
     private var checkedPosition: Int = 0;
@@ -28,12 +30,15 @@ class PlayerListAdapter(private val playerList: ArrayList<Player>, private val c
         val current = playerList[position]
         holder.bind(current, checkedPosition)
 
-        holder.itemView.setOnClickListener {
-            val oldPosition = checkedPosition
-            checkedPosition = holder.adapterPosition
+        // Only host can change runner
+        if (isHost) {
+            holder.itemView.setOnClickListener {
+                val oldPosition = checkedPosition
+                checkedPosition = holder.adapterPosition
 
-            notifyItemChanged(checkedPosition)
-            notifyItemChanged(oldPosition)
+                notifyItemChanged(checkedPosition)
+                notifyItemChanged(oldPosition)
+            }
         }
     }
 
@@ -71,6 +76,10 @@ class PlayerListAdapter(private val playerList: ArrayList<Player>, private val c
 
         notifyItemChanged(checkedPosition)
         notifyItemChanged(oldPosition)
+    }
+
+    fun getRunner(): Player {
+        return playerList[checkedPosition]
     }
 
     class PlayerComparator : DiffUtil.ItemCallback<Player>() {

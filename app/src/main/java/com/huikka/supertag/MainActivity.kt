@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
             applicationContext, "Created game $gameId", Toast.LENGTH_LONG
         ).show()
 
-        startLobbyActivity(gameId)
+        startLobbyActivity(gameId, true)
     }
 
     private suspend fun joinGame(gameId: String) {
@@ -150,11 +150,15 @@ class MainActivity : AppCompatActivity() {
         ).show()
 
         startLobbyActivity(gameId)
+
     }
 
-    private fun startLobbyActivity(gameId: String) {
+    private fun startLobbyActivity(gameId: String, host: Boolean = false) {
         val intent = Intent(this, LobbyActivity::class.java)
         intent.putExtra("GAME_ID", gameId)
+        intent.putExtra("HOST", host)
         startActivity(intent)
+        gameIdEditText.text.clear()
+        gameIdEditText.clearFocus()
     }
 }
