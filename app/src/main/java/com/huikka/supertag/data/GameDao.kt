@@ -68,4 +68,12 @@ class GameDao {
         }.await()
         return err
     }
+
+    suspend fun removeGame(gameId: String): Error? {
+        var err: Error? = null
+        getGameDocumentById(gameId)?.reference?.delete()?.addOnFailureListener {
+            err = Error("Game not found")
+        }
+        return err
+    }
 }

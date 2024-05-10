@@ -57,12 +57,15 @@ class LobbyActivity : AppCompatActivity() {
         leaveButton.setOnClickListener {
             lifecycleScope.launch {
                 leaveGame()
+                if (isHost) {
+                    db.removeGame(gameId)
+                }
             }
         }
 
         if (isHost) {
             randomButton.setOnClickListener {
-                adapter.selectRandom();
+                adapter.selectRandom()
             }
             startButton.setOnClickListener {
                 val runner = adapter.getRunner()
