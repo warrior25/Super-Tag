@@ -20,6 +20,8 @@ import com.huikka.supertag.data.AuthDao
 import com.huikka.supertag.data.GameDao
 import com.huikka.supertag.data.model.Game
 import com.huikka.supertag.data.model.Player
+import com.huikka.supertag.data.room.CurrentGame
+import com.huikka.supertag.data.room.dao.CurrentGameDao
 import com.huikka.supertag.ui.login.LoginActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +31,8 @@ class MainActivity : AppCompatActivity() {
 
     private var db = GameDao()
     private var auth = AuthDao()
+
+    private lateinit var currentGameDao: CurrentGameDao
 
     // UI elements
     private lateinit var joinGameButton: Button
@@ -44,6 +48,8 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        currentGameDao = (application as STApplication).currentGameDao
 
         // Setup button actions
         joinGameButton = findViewById(R.id.joinGameButton)
@@ -101,6 +107,17 @@ class MainActivity : AppCompatActivity() {
         locationManager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER, 5000, 10f, locationListener
         )
+
+        CoroutineScope(Dispatchers.Main).launch {
+            val currentGame = currentGameDao.getGameDetails()
+            if (currentGame != null) {
+                if (db.checkGameExists(currentGame.id)) {
+                    startLobbyActivity(currentGame.id, currentGame.isHost)
+                } else {
+                    currentGameDao.deleteGameDetails()
+                }
+            }
+        }
     }
 
     private suspend fun hostGame() {
@@ -155,10 +172,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun startLobbyActivity(gameId: String, host: Boolean = false) {
         val intent = Intent(this, LobbyActivity::class.java)
-        intent.putExtra("GAME_ID", gameId)
-        intent.putExtra("HOST", host)
-        startActivity(intent)
-        gameIdEditText.text.clear()
-        gameIdEditText.clearFocus()
+        CoroutineScope(Dispatchers.Main).launch {
+            currentGameDao.deleteGameDetails()
+            currentGameDao.insertGameDetails(CurrentGame(gameId, host))
+            startActivity(intent)
+            gameIdEditText.text.clear()
+            gameIdEditText.clearFocus()
+        }
     }
 }

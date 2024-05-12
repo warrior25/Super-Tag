@@ -15,6 +15,10 @@ import com.huikka.supertag.data.AuthDao
 import com.huikka.supertag.data.GameDao
 import com.huikka.supertag.data.model.Game
 import com.huikka.supertag.data.model.Player
+import com.huikka.supertag.data.room.CurrentGame
+import com.huikka.supertag.data.room.dao.CurrentGameDao
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class LobbyActivity : AppCompatActivity() {
@@ -28,6 +32,9 @@ class LobbyActivity : AppCompatActivity() {
     private var players: ArrayList<Player> = ArrayList()
     private lateinit var adapter: PlayerListAdapter
 
+    private lateinit var currentGameDao: CurrentGameDao
+    private lateinit var currentGame: CurrentGame
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -38,39 +45,43 @@ class LobbyActivity : AppCompatActivity() {
             insets
         }
 
-        gameId = intent.getStringExtra("GAME_ID")!!
-        isHost = intent.getBooleanExtra("HOST", false)
-
-        val gameIdView = findViewById<TextView>(R.id.game_id)
-        gameIdView.text = gameId
-
-        getPlayers()
-
-        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
-        adapter = PlayerListAdapter(players, isHost)
-        recyclerView.adapter = adapter
-
         val randomButton = findViewById<Button>(R.id.pick_random)
         val startButton = findViewById<Button>(R.id.startButton)
         val leaveButton = findViewById<Button>(R.id.leaveButton)
 
-        leaveButton.setOnClickListener {
-            lifecycleScope.launch {
-                leaveGame()
-            }
-        }
+        CoroutineScope(Dispatchers.Main).launch {
+            currentGameDao = (application as STApplication).currentGameDao
+            currentGame = currentGameDao.getGameDetails()!!
+            gameId = currentGame.id
+            isHost = currentGame.isHost
 
-        if (isHost) {
-            randomButton.setOnClickListener {
-                adapter.selectRandom()
+            val gameIdView = findViewById<TextView>(R.id.game_id)
+            gameIdView.text = gameId
+
+            if (isHost) {
+                randomButton.setOnClickListener {
+                    adapter.selectRandom()
+                }
+                startButton.setOnClickListener {
+                    val runner = adapter.getRunner()
+                    Log.d("TAG", runner.toString())
+                }
+            } else {
+                randomButton.visibility = View.GONE
+                startButton.visibility = View.GONE
             }
-            startButton.setOnClickListener {
-                val runner = adapter.getRunner()
-                Log.d("TAG", runner.toString())
+
+            getPlayers()
+
+            val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+            adapter = PlayerListAdapter(players, isHost)
+            recyclerView.adapter = adapter
+
+            leaveButton.setOnClickListener {
+                lifecycleScope.launch {
+                    leaveGame()
+                }
             }
-        } else {
-            randomButton.visibility = View.GONE
-            startButton.visibility = View.GONE
         }
     }
 
@@ -80,6 +91,7 @@ class LobbyActivity : AppCompatActivity() {
         } else {
             db.removeChaser(auth.user?.uid!!, gameId)
         }
+        currentGameDao.deleteGameDetails()
         finish()
     }
 
