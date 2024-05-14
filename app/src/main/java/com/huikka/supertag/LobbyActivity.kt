@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 class LobbyActivity : AppCompatActivity() {
 
     private val db = GameDao()
-    private val auth = AuthDao()
+    private val auth = AuthDao(application as STApplication)
     private lateinit var gameId: String
     private var isHost: Boolean = false
 
@@ -89,7 +89,7 @@ class LobbyActivity : AppCompatActivity() {
         if (isHost) {
             db.removeGame(gameId)
         } else {
-            db.removeChaser(auth.user?.uid!!, gameId)
+            db.removeChaser(auth.user?.id!!, gameId)
         }
         currentGameDao.deleteGameDetails()
         finish()

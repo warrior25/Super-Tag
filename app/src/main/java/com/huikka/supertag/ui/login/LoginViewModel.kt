@@ -5,9 +5,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.huikka.supertag.R
+import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.AuthDao
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(application: STApplication) : ViewModel() {
 
     private val _loginForm = MutableLiveData<LoginFormState>()
     val loginFormState: LiveData<LoginFormState> = _loginForm
@@ -15,15 +16,15 @@ class LoginViewModel : ViewModel() {
     private val _loginResult = MutableLiveData<LoginResult>()
     val loginResult: LiveData<LoginResult> = _loginResult
 
-    private val auth = AuthDao()
+    private val auth = AuthDao(application)
 
     suspend fun login(username: String, password: String) {
         // can be launched in a separate asynchronous job
         val err = auth.login(username, password)
 
         if (err == null) {
-            val displayName = auth.user?.displayName ?: ""
-            val userId = auth.user?.uid ?: ""
+            val displayName = auth.user?.userMetadata?.get("nickname").toString()
+            val userId = auth.user?.id ?: ""
             _loginResult.value =
                 LoginResult(success = LoggedInUserView(displayName, userId))
         } else {

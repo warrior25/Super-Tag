@@ -1,60 +1,57 @@
 package com.huikka.supertag.data
 
-import android.util.Log
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.auth.userProfileChangeRequest
-import com.google.firebase.ktx.Firebase
-import kotlinx.coroutines.tasks.await
+import com.huikka.supertag.STApplication
+import io.github.jan.supabase.gotrue.Auth
+import io.github.jan.supabase.gotrue.auth
+import io.github.jan.supabase.gotrue.providers.builtin.Email
+import io.github.jan.supabase.gotrue.user.UserInfo
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.IOException
 
-class AuthDao {
+class AuthDao(application: STApplication) {
 
-    private var auth: FirebaseAuth = Firebase.auth
+    private var auth: Auth = application.supabase.auth
 
-    val user: FirebaseUser? = auth.currentUser
+    val user: UserInfo? = auth.currentUserOrNull()
 
     val isLoggedIn: Boolean = user != null
 
     suspend fun login(email: String, password: String): Error? {
         var err: Error? = null
         try {
-            auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-                if (!task.isSuccessful) {
-                    Log.e("LOGIN", task.exception.toString())
-                    err = Error(IOException("Error logging in", task.exception))
-                }
-            }.await()
-        } catch (e: Throwable) {
+            auth.signInWith(Email) {
+                this.email = email
+                this.password = password
+            }
+        } catch (e: Exception) {
             err = Error(IOException("Error logging in", e))
         }
-
         return err
     }
 
-    fun logout(): Error? {
+    suspend fun logout(): Error? {
         try {
             auth.signOut()
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             return Error(IOException("Error logging out", e))
         }
         return null
     }
 
-    suspend fun register(email: String, password: String, name: String): Error? {
+    suspend fun register(email: String, password: String, nickname: String): Error? {
         var err: Error? = null
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val profileUpdate = userProfileChangeRequest {
-                        displayName = name
-                    }
-                    user?.updateProfile(profileUpdate)
-                } else {
-                    err = Error(IOException("Error registering", task.exception))
+        try {
+            auth.signUpWith(Email) {
+                this.email = email
+                this.password = password
+                data = buildJsonObject {
+                    put("nickname", nickname)
                 }
-            }.await()
+            }
+        } catch (e: Exception) {
+            err = Error(IOException("Error registering", e))
+        }
         return err
     }
 }

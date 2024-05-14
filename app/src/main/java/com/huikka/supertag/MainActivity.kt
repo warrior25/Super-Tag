@@ -3,7 +3,6 @@ package com.huikka.supertag
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -30,7 +29,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private var db = GameDao()
-    private var auth = AuthDao()
+    private lateinit var auth : AuthDao
 
     private lateinit var currentGameDao: CurrentGameDao
 
@@ -49,7 +48,9 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        currentGameDao = (application as STApplication).currentGameDao
+        auth = AuthDao(application as STApplication)
+        val app = application as STApplication
+        currentGameDao = app.currentGameDao
 
         // Setup button actions
         joinGameButton = findViewById(R.id.joinGameButton)
@@ -71,14 +72,23 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         } else {
-            Log.d("LOGIN", auth.user?.uid!!)
+            Log.d("LOGIN", auth.user?.id!!)
         }
 
-        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        val locationListener = ChaserLocationListener()
+        val requestBackgroundLocation = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (!isGranted) {
+                // Explain to the user that the feature is unavailable because the
+                // feature requires a permission that the user has denied. At the
+                // same time, respect the user's decision. Don't link to system
+                // settings in an effort to convince the user to change their
+                // decision.
+            }
+        }
 
 
-        val requestPermissionLauncher = registerForActivityResult(
+        val requestFineLocation = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (!isGranted) {
@@ -88,25 +98,27 @@ class MainActivity : AppCompatActivity() {
                 // settings in an effort to convince the user to change their
                 // decision.
             } else {
-                locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER, 5000, 10f, locationListener
+                requestBackgroundLocation.launch(
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 )
             }
         }
 
         if (ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            requestPermissionLauncher.launch(
+            requestFineLocation.launch(
                 Manifest.permission.ACCESS_FINE_LOCATION
             )
+        } else if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestBackgroundLocation.launch(
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            )
         }
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER, 5000, 10f, locationListener
-        )
 
         CoroutineScope(Dispatchers.Main).launch {
             val currentGame = currentGameDao.getGameDetails()
@@ -133,7 +145,7 @@ class MainActivity : AppCompatActivity() {
             Game(
                 gameId, chasers = listOf(
                     Player(
-                        auth.user?.uid!!, auth.user?.displayName!!
+                        auth.user?.id!!, auth.user?.userMetadata?.get("nickname").toString()
                     )
                 )
             )
@@ -153,7 +165,7 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun joinGame(gameId: String) {
         val err = db.addChaser(
-            Player(auth.user?.uid!!, auth.user?.displayName!!),
+            Player(auth.user?.id!!, auth.user?.userMetadata?.get("nickname").toString()),
             gameId
         )
         if (err != null) {
