@@ -18,7 +18,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.huikka.supertag.data.AuthDao
 import com.huikka.supertag.data.GameDao
 import com.huikka.supertag.data.model.Game
-import com.huikka.supertag.data.model.Player
 import com.huikka.supertag.data.room.CurrentGame
 import com.huikka.supertag.data.room.dao.CurrentGameDao
 import com.huikka.supertag.ui.login.LoginActivity
@@ -28,8 +27,8 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    private var db = GameDao()
-    private lateinit var auth : AuthDao
+    private lateinit var gameDao: GameDao
+    private lateinit var authDao: AuthDao
 
     private lateinit var currentGameDao: CurrentGameDao
 
@@ -48,8 +47,9 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        auth = AuthDao(application as STApplication)
         val app = application as STApplication
+        authDao = AuthDao(app)
+        gameDao = GameDao(app)
         currentGameDao = app.currentGameDao
 
         // Setup button actions
@@ -68,11 +68,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (!auth.isLoggedIn) {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-        } else {
-            Log.d("LOGIN", auth.user?.id!!)
+        CoroutineScope(Dispatchers.Main).launch {
+            val session = authDao.awaitCurrentSession()
+            Log.d("SESSION", session.toString())
+            if (session == null) {
+                val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                startActivity(intent)
+            } else {
+                val currentGame = gameDao.getCurrentGameInfo(authDao.getUser()!!.id)
+                Log.d("CURRENT_GAME", currentGame.toString())
+                if (currentGame.gameId != null) {
+                    startLobbyActivity(currentGame.gameId, currentGame.isHost)
+                }
+            }
         }
 
         val requestBackgroundLocation = registerForActivityResult(
@@ -119,35 +127,20 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION
             )
         }
-
-        CoroutineScope(Dispatchers.Main).launch {
-            val currentGame = currentGameDao.getGameDetails()
-            if (currentGame != null) {
-                if (db.checkGameExists(currentGame.id)) {
-                    startLobbyActivity(currentGame.id, currentGame.isHost)
-                } else {
-                    currentGameDao.deleteGameDetails()
-                }
-            }
-        }
     }
 
     private suspend fun hostGame() {
         var gameId: String
         while (true) {
             gameId = List(6) { ('A'..'Z').random() }.joinToString("")
-            if (!db.checkGameExists(gameId)) {
+            if (!gameDao.checkGameExists(gameId)) {
                 break
             }
         }
 
-        val err = db.createGame(
+        var err = gameDao.createGame(
             Game(
-                gameId, chasers = listOf(
-                    Player(
-                        auth.user?.id!!, auth.user?.userMetadata?.get("nickname").toString()
-                    )
-                )
+                gameId
             )
         )
 
@@ -156,17 +149,19 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        Toast.makeText(
-            applicationContext, "Created game $gameId", Toast.LENGTH_LONG
-        ).show()
+        err = gameDao.addChaser(authDao.getUser()!!.id, gameId, true)
+
+        if (err != null) {
+            Log.e("HOST", "Failed to host game: $err")
+            return
+        }
 
         startLobbyActivity(gameId, true)
     }
 
     private suspend fun joinGame(gameId: String) {
-        val err = db.addChaser(
-            Player(auth.user?.id!!, auth.user?.userMetadata?.get("nickname").toString()),
-            gameId
+        val err = gameDao.addChaser(
+            authDao.getUser()!!.id, gameId
         )
         if (err != null) {
             Toast.makeText(

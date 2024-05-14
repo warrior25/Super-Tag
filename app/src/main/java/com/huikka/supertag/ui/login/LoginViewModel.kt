@@ -16,17 +16,16 @@ class LoginViewModel(application: STApplication) : ViewModel() {
     private val _loginResult = MutableLiveData<LoginResult>()
     val loginResult: LiveData<LoginResult> = _loginResult
 
-    private val auth = AuthDao(application)
+    private val authDao = AuthDao(application)
 
     suspend fun login(username: String, password: String) {
         // can be launched in a separate asynchronous job
-        val err = auth.login(username, password)
+        val loggedIn = authDao.login(username, password)
 
-        if (err == null) {
-            val displayName = auth.user?.userMetadata?.get("nickname").toString()
-            val userId = auth.user?.id ?: ""
-            _loginResult.value =
-                LoginResult(success = LoggedInUserView(displayName, userId))
+        if (loggedIn) {
+            val displayName = authDao.getUser()!!.userMetadata?.get("nickname").toString()
+            val userId = authDao.getUser()!!.id
+            _loginResult.value = LoginResult(success = LoggedInUserView(displayName, userId))
         } else {
             _loginResult.value = LoginResult(error = R.string.login_failed)
         }

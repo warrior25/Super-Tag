@@ -13,7 +13,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.huikka.supertag.data.AuthDao
 import com.huikka.supertag.data.GameDao
-import com.huikka.supertag.data.model.Game
 import com.huikka.supertag.data.model.Player
 import com.huikka.supertag.data.room.CurrentGame
 import com.huikka.supertag.data.room.dao.CurrentGameDao
@@ -23,12 +22,11 @@ import kotlinx.coroutines.launch
 
 class LobbyActivity : AppCompatActivity() {
 
-    private val db = GameDao()
-    private val auth = AuthDao(application as STApplication)
+    private lateinit var gameDao: GameDao
+    private lateinit var authDao: AuthDao
     private lateinit var gameId: String
     private var isHost: Boolean = false
 
-    private val database = db.getDatabase()
     private var players: ArrayList<Player> = ArrayList()
     private lateinit var adapter: PlayerListAdapter
 
@@ -44,6 +42,10 @@ class LobbyActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        val app = application as STApplication
+        authDao = AuthDao(app)
+        gameDao = GameDao(app)
 
         val randomButton = findViewById<Button>(R.id.pick_random)
         val startButton = findViewById<Button>(R.id.startButton)
@@ -87,27 +89,26 @@ class LobbyActivity : AppCompatActivity() {
 
     private suspend fun leaveGame() {
         if (isHost) {
-            db.removeGame(gameId)
+            gameDao.removeGame(gameId)
         } else {
-            db.removeChaser(auth.user?.id!!, gameId)
+            gameDao.removeChaser(authDao.getUser()!!.id)
         }
         currentGameDao.deleteGameDetails()
         finish()
     }
 
-    private fun getPlayers() {
-        database.collection("games").whereEqualTo(/* field = */ "id", /* value = */ gameId)
-            .addSnapshotListener { value, e ->
-                if (e != null) {
-                    Log.w("Error", "Listen failed.", e)
-                    return@addSnapshotListener
-                }
-
-                val game = value!!.documents[0].toObject(Game::class.java)
-                for (player in game!!.chasers) {
-                    players.add(player)
-                }
-                adapter.notifyDataSetChanged()
+    private fun getPlayers() {/*database.collection("games").whereEqualTo(/* field = */ "id", /* value = */ gameId)
+        .addSnapshotListener { value, e ->
+            if (e != null) {
+                Log.w("Error", "Listen failed.", e)
+                return@addSnapshotListener
             }
+
+            val game = value!!.documents[0].toObject(Game::class.java)
+            for (player in game!!.chasers) {
+                players.add(player)
+            }
+            adapter.notifyDataSetChanged()
+        }*/
     }
 }

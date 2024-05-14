@@ -1,79 +1,99 @@
 package com.huikka.supertag.data
 
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.huikka.supertag.STApplication
+import com.huikka.supertag.data.dto.CurrentGameDto
+import com.huikka.supertag.data.dto.GameDto
 import com.huikka.supertag.data.model.Game
-import com.huikka.supertag.data.model.Player
-import kotlinx.coroutines.tasks.await
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 
-class GameDao {
+class GameDao(application: STApplication) {
 
-    private var db = Firebase.firestore
+    private var db: Postgrest = application.supabase.postgrest
 
-    fun getDatabase(): FirebaseFirestore {
-        return db
-    }
-
-    private fun getGameFromDocument(doc: DocumentSnapshot): Game? {
-        return doc.toObject(Game::class.java)
-    }
-
-    private suspend fun getGameDocumentById(id: String): DocumentSnapshot? {
-        val gameRef = db.collection("games").whereEqualTo("id", id).get().await()
-        if (gameRef.isEmpty) {
-            return null
-        }
-        return gameRef.documents[0]
+    private suspend fun getGameById(id: String): Game {
+        return db.from("games").select {
+            filter {
+                eq("id", id)
+            }
+        }.decodeSingle<Game>()
     }
 
     suspend fun checkGameExists(id: String): Boolean {
-        return getGameDocumentById(id) != null
+        return db.from("games").select {
+            filter {
+                eq("id", id)
+            }
+        }.countOrNull() != null
     }
 
-    suspend fun removeChaser(id: String, gameId: String): Error? {
-        val doc = getGameDocumentById(gameId) ?: return Error("Game not found")
-        val game = getGameFromDocument(doc)
-        val chasers = game?.chasers
-        chasers?.forEach {
-            if (it.id == id) {
-                doc.reference.update(
-                    "chasers",
-                    FieldValue.arrayRemove(
-                        it
-                    )
-                )
+    suspend fun removeChaser(id: String): Error? {
+        try {
+            db.from("players").update({ setToNull("gameId") }) {
+                filter {
+                    eq("id", id)
+                }
             }
+        } catch (e: Exception) {
+            return Error(e)
         }
         return null
     }
 
-    suspend fun addChaser(player: Player, gameId: String): Error? {
-        val doc = getGameDocumentById(gameId) ?: return Error("Game not found")
-        doc.reference.update(
-            "chasers",
-            FieldValue.arrayUnion(
-                player
-            )
-        ).await()
+    suspend fun addChaser(playerId: String, gameId: String, isHost: Boolean = false): Error? {
+        try {
+            db.from("players").update({ set("gameId", gameId) }) {
+                filter {
+                    eq("id", playerId)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
         return null
     }
 
     suspend fun createGame(game: Game): Error? {
-        var err: Error? = null
-        db.collection("games").add(game).addOnFailureListener {
-            err = Error(it)
-        }.await()
-        return err
+        try {
+            val gameDto = GameDto(
+                id = game.id,
+                status = game.status,
+                runner = game.runner,
+                runnerMoney = game.runnerMoney,
+                chaserMoney = game.chaserMoney,
+                robberyInProgress = game.robberyInProgress,
+                startTime = game.startTime,
+                endTime = game.endTime,
+                headStart = game.headStart,
+                nextRunnerLocationUpdate = game.nextRunnerLocationUpdate,
+                lastRunnerLocationUpdate = game.lastRunnerLocationUpdate
+            )
+            db.from("games").insert(gameDto)
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
     }
 
-    suspend fun removeGame(gameId: String): Error? {
-        var err: Error? = null
-        getGameDocumentById(gameId)?.reference?.delete()?.addOnFailureListener {
-            err = Error("Game not found")
+    suspend fun removeGame(id: String): Error? {
+        try {
+            db.from("games").delete {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
         }
-        return err
+        return null
+    }
+
+    suspend fun getCurrentGameInfo(userId: String): CurrentGameDto {
+        return db.from("players").select(columns = Columns.list("gameId", "isHost")) {
+            filter {
+                eq("id", userId)
+            }
+        }.decodeSingle<CurrentGameDto>()
     }
 }
