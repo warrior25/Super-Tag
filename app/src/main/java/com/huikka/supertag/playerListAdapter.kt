@@ -43,7 +43,7 @@ class PlayerListAdapter(
 
                 CoroutineScope(Dispatchers.Main).launch {
                     val currentGameId = gameDao.getCurrentGameInfo(current.id).gameId!!
-                    gameDao.setRunner(currentGameId, current.id)
+                    gameDao.setRunnerId(currentGameId, current.id)
                 }
 
                 notifyItemChanged(checkedPosition)
@@ -87,6 +87,18 @@ class PlayerListAdapter(
 
         notifyItemChanged(checkedPosition)
         notifyItemChanged(oldPosition)
+    }
+
+    fun setRunner(playerId: String) {
+        val oldPosition = checkedPosition
+        for (i in 0 until playerList.size) {
+            if (playerList[i].id == playerId) {
+                checkedPosition = i
+                notifyItemChanged(checkedPosition)
+                notifyItemChanged(oldPosition)
+                break
+            }
+        }
     }
 
     fun getRunner(): Player {

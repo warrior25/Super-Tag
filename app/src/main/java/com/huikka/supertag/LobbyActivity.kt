@@ -54,12 +54,19 @@ class LobbyActivity : AppCompatActivity() {
             gameId = game.gameId!!
             isHost = game.isHost
 
-            gameDao.setRunner(gameId, authDao.getUser()!!.id)
-
             val gameIdView = findViewById<TextView>(R.id.game_id)
             gameIdView.text = gameId
 
+            val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+            adapter = PlayerListAdapter(app, players, isHost)
+            recyclerView.adapter = adapter
+
             if (isHost) {
+                randomButton.visibility = View.VISIBLE
+                startButton.visibility = View.VISIBLE
+                if (gameDao.getRunnerId(gameId) == null) {
+                    gameDao.setRunnerId(gameId, authDao.getUser()!!.id)
+                }
                 randomButton.setOnClickListener {
                     adapter.selectRandom()
                 }
@@ -68,13 +75,16 @@ class LobbyActivity : AppCompatActivity() {
                     Log.d("TAG", runner.toString())
                 }
             } else {
-                randomButton.visibility = View.GONE
-                startButton.visibility = View.GONE
+                CoroutineScope(Dispatchers.IO).launch {
+                    val flow = gameDao.getGameFlow(gameId)
+                    flow.collect {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            adapter.setRunner(it.runnerId!!)
+                        }
+                    }
+                }
             }
 
-            val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
-            adapter = PlayerListAdapter(app, players, isHost)
-            recyclerView.adapter = adapter
 
             leaveButton.setOnClickListener {
                 lifecycleScope.launch {

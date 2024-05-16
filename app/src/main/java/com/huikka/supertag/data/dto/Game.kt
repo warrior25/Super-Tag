@@ -8,7 +8,7 @@ data class Game(
 
     @SerialName("id") val id: String,
     @SerialName("status") val status: String,
-    @SerialName("runnerId") val runner: String? = null,
+    @SerialName("runnerId") val runnerId: String? = null,
     @SerialName("runnerMoney") val runnerMoney: Int? = null,
     @SerialName("chaserMoney") val chaserMoney: Int? = null,
     @SerialName("robberyInProgress") val robberyInProgress: Boolean? = null,
