@@ -1,15 +1,10 @@
 package com.huikka.supertag
 
-import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import com.huikka.supertag.data.room.CurrentGame
-import com.huikka.supertag.data.room.dao.CurrentGameDao
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.realtime.Realtime
 
 
 abstract class SupabaseModule {
@@ -31,6 +26,7 @@ abstract class SupabaseModule {
                 ) {
                     install(Postgrest)
                     install(Auth)
+                    install(Realtime)
                 }
                 INSTANCE = instance
                 // return instance

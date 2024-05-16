@@ -15,9 +15,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.huikka.supertag.data.AuthDao
-import com.huikka.supertag.data.GameDao
-import com.huikka.supertag.data.model.Game
+import com.huikka.supertag.data.dao.AuthDao
+import com.huikka.supertag.data.dao.GameDao
+import com.huikka.supertag.data.dto.Game
 import com.huikka.supertag.data.room.CurrentGame
 import com.huikka.supertag.data.room.dao.CurrentGameDao
 import com.huikka.supertag.ui.login.LoginActivity
@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity() {
 
         var err = gameDao.createGame(
             Game(
-                gameId
+                gameId, "lobby"
             )
         )
 

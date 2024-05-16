@@ -7,16 +7,15 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.huikka.supertag.data.model.Player
+import com.huikka.supertag.data.dto.Player
 import kotlin.random.Random
 
 class PlayerListAdapter(
     private val playerList: ArrayList<Player>,
     private val isHost: Boolean,
-) :
-    ListAdapter<Player, PlayerListAdapter.PlayerViewHolder>(PlayerComparator()) {
+) : ListAdapter<Player, PlayerListAdapter.PlayerViewHolder>(PlayerComparator()) {
 
-    private var checkedPosition: Int = 0;
+    private var checkedPosition: Int = 0
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlayerViewHolder {
@@ -49,6 +48,7 @@ class PlayerListAdapter(
         private val playerName: TextView = itemView.findViewById(R.id.playerName)
 
         fun bind(player: Player, checkedPosition: Int) {
+            playerName.text = player.name
             if (checkedPosition == adapterPosition) {
                 playerName.setBackgroundResource(R.drawable.player_selected)
                 playerName.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.runner, 0)

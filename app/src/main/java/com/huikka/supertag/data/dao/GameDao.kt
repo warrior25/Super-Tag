@@ -1,16 +1,15 @@
-package com.huikka.supertag.data
+package com.huikka.supertag.data.dao
 
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.CurrentGameDto
-import com.huikka.supertag.data.dto.GameDto
-import com.huikka.supertag.data.model.Game
+import com.huikka.supertag.data.dto.Game
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 
 class GameDao(application: STApplication) {
 
-    private var db: Postgrest = application.supabase.postgrest
+    private val db: Postgrest = application.supabase.postgrest
 
     private suspend fun getGameById(id: String): Game {
         return db.from("games").select {
@@ -43,7 +42,10 @@ class GameDao(application: STApplication) {
 
     suspend fun addChaser(playerId: String, gameId: String, isHost: Boolean = false): Error? {
         try {
-            db.from("players").update({ set("gameId", gameId) }) {
+            db.from("players").update({
+                set("gameId", gameId)
+                set("isHost", isHost)
+            }) {
                 filter {
                     eq("id", playerId)
                 }
@@ -56,7 +58,7 @@ class GameDao(application: STApplication) {
 
     suspend fun createGame(game: Game): Error? {
         try {
-            val gameDto = GameDto(
+            val gameDto = Game(
                 id = game.id,
                 status = game.status,
                 runner = game.runner,

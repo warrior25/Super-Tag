@@ -6,7 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.huikka.supertag.R
 import com.huikka.supertag.STApplication
-import com.huikka.supertag.data.AuthDao
+import com.huikka.supertag.data.dao.AuthDao
 
 class LoginViewModel(application: STApplication) : ViewModel() {
 
