@@ -1,7 +1,6 @@
 package com.huikka.supertag
 
 import android.os.Bundle
-import android.util.DisplayMetrics
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
@@ -9,7 +8,7 @@ import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.ScaleBarOverlay
+import org.osmdroid.views.overlay.CopyrightOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
@@ -57,15 +56,9 @@ class GameActivity : AppCompatActivity() {
         myLocationOverlay.isDrawAccuracyEnabled = true
         map.overlays.add(myLocationOverlay)
 
-        // Add scale to map
-        val dm: DisplayMetrics = this.resources.displayMetrics
-        val scaleBarOverlay = ScaleBarOverlay(map)
-        scaleBarOverlay.setCentred(true)
-//play around with these values to get the location on screen in the right place for your application
-        scaleBarOverlay.setScaleBarOffset(dm.widthPixels / 2, 10)
-        map.overlays.add(scaleBarOverlay)
-
-
+        // Mandatory copy-right mention
+        val cr = CopyrightOverlay(this)
+        map.overlays.add(cr)
     }
 
     override fun onResume() {
