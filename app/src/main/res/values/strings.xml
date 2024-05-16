@@ -33,4 +33,6 @@
     <string name="permissions_denied">Unable to get requested permissions. Click the button below to give location permission manually.</string>
     <string name="fix_now">Fix now</string>
     <string name="open_settings">Open settings</string>
+    <string name="gameInfoButton">button_to_show_game_info</string>
+    <string name="cardsButton">button_to_show_cards</string>
 </resources>
