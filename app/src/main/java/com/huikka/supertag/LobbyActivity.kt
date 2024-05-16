@@ -11,10 +11,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
-import com.huikka.supertag.data.AuthDao
-import com.huikka.supertag.data.GameDao
-import com.huikka.supertag.data.model.Game
-import com.huikka.supertag.data.model.Player
+import com.huikka.supertag.data.dao.AuthDao
+import com.huikka.supertag.data.dao.GameDao
+import com.huikka.supertag.data.dao.PlayerDao
+import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.room.CurrentGame
 import com.huikka.supertag.data.room.dao.CurrentGameDao
 import kotlinx.coroutines.CoroutineScope
@@ -23,12 +23,12 @@ import kotlinx.coroutines.launch
 
 class LobbyActivity : AppCompatActivity() {
 
-    private val db = GameDao()
-    private val auth = AuthDao()
+    private lateinit var gameDao: GameDao
+    private lateinit var authDao: AuthDao
+    private lateinit var playerDao: PlayerDao
     private lateinit var gameId: String
     private var isHost: Boolean = false
 
-    private val database = db.getDatabase()
     private var players: ArrayList<Player> = ArrayList()
     private lateinit var adapter: PlayerListAdapter
 
@@ -44,6 +44,11 @@ class LobbyActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        val app = application as STApplication
+        authDao = AuthDao(app)
+        gameDao = GameDao(app)
+        playerDao = PlayerDao(app)
 
         val randomButton = findViewById<Button>(R.id.pick_random)
         val startButton = findViewById<Button>(R.id.startButton)
@@ -71,8 +76,6 @@ class LobbyActivity : AppCompatActivity() {
                 startButton.visibility = View.GONE
             }
 
-            getPlayers()
-
             val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
             adapter = PlayerListAdapter(players, isHost)
             recyclerView.adapter = adapter
@@ -82,32 +85,28 @@ class LobbyActivity : AppCompatActivity() {
                     leaveGame()
                 }
             }
+
+            getPlayers()
         }
     }
 
     private suspend fun leaveGame() {
         if (isHost) {
-            db.removeGame(gameId)
+            gameDao.removeGame(gameId)
         } else {
-            db.removeChaser(auth.user?.uid!!, gameId)
+            gameDao.removeChaser(authDao.getUser()!!.id)
         }
         currentGameDao.deleteGameDetails()
         finish()
     }
 
-    private fun getPlayers() {
-        database.collection("games").whereEqualTo(/* field = */ "id", /* value = */ gameId)
-            .addSnapshotListener { value, e ->
-                if (e != null) {
-                    Log.w("Error", "Listen failed.", e)
-                    return@addSnapshotListener
-                }
-
-                val game = value!!.documents[0].toObject(Game::class.java)
-                for (player in game!!.chasers) {
-                    players.add(player)
-                }
-                adapter.notifyDataSetChanged()
+    private suspend fun getPlayers() {
+        val flow = playerDao.getPlayersByGameIdFlow(gameId)
+        flow.collect {
+            for (player in it) {
+                players.add(player)
             }
+            adapter.notifyDataSetChanged()
+        }
     }
 }
