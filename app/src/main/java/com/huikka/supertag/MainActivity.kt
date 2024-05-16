@@ -154,7 +154,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        err = gameDao.addChaser(authDao.getUser()!!.id, gameId, true)
+        err = gameDao.addPlayer(authDao.getUser()!!.id, gameId, true)
 
         if (err != null) {
             Log.e("HOST", "Failed to host game: $err")
@@ -165,7 +165,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun joinGame(gameId: String) {
-        val err = gameDao.addChaser(
+        val err = gameDao.addPlayer(
             authDao.getUser()!!.id, gameId
         )
         if (err != null) {

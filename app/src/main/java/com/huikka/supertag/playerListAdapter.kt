@@ -7,15 +7,21 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dto.Player
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class PlayerListAdapter(
+    application: STApplication,
     private val playerList: ArrayList<Player>,
     private val isHost: Boolean,
 ) : ListAdapter<Player, PlayerListAdapter.PlayerViewHolder>(PlayerComparator()) {
 
     private var checkedPosition: Int = 0
+    private var gameDao: GameDao = GameDao(application)
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlayerViewHolder {
@@ -34,6 +40,11 @@ class PlayerListAdapter(
             holder.itemView.setOnClickListener {
                 val oldPosition = checkedPosition
                 checkedPosition = holder.adapterPosition
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    val currentGameId = gameDao.getCurrentGameInfo(current.id).gameId!!
+                    gameDao.setRunner(currentGameId, current.id)
+                }
 
                 notifyItemChanged(checkedPosition)
                 notifyItemChanged(oldPosition)
