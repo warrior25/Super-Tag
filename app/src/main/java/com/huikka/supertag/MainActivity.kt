@@ -62,13 +62,9 @@ class MainActivity : AppCompatActivity() {
 
         hostGameButton = findViewById(R.id.hostGameButton)
         hostGameButton.setOnClickListener {
-
-            val intent = Intent(this, GameActivity::class.java)
-            startActivity(intent)
-
-            //CoroutineScope(Dispatchers.Main).launch {
-            //    hostGame()
-            //}
+            CoroutineScope(Dispatchers.Main).launch {
+                hostGame()
+            }
         }
 
         if (!auth.isLoggedIn) {

@@ -1,5 +1,6 @@
 package com.huikka.supertag
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -81,6 +82,10 @@ class LobbyActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     leaveGame()
                 }
+            }
+            startButton.setOnClickListener {
+                val intent = Intent(baseContext, GameActivity::class.java)
+                startActivity(intent)
             }
         }
     }
