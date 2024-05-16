@@ -5,8 +5,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,9 +70,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val loading = findViewById<ProgressBar>(R.id.loading)
+
         CoroutineScope(Dispatchers.Main).launch {
             val session = authDao.awaitCurrentSession()
-            Log.d("SESSION", session.toString())
             if (session == null) {
                 val intent = Intent(this@MainActivity, LoginActivity::class.java)
                 startActivity(intent)
@@ -81,6 +84,8 @@ class MainActivity : AppCompatActivity() {
                     startLobbyActivity(currentGame.gameId, currentGame.isHost)
                 }
             }
+            loading.visibility = View.GONE
+            hostGameButton.visibility = View.VISIBLE
         }
 
         val requestBackgroundLocation = registerForActivityResult(
