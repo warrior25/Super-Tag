@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.huikka.supertag.R
+import com.huikka.supertag.STApplication
 import com.huikka.supertag.databinding.ActivityLoginBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,8 +39,8 @@ class LoginActivity : AppCompatActivity() {
         val already_account = binding.alreadyAccount!!
         val title = binding.loginViewTitle!!
 
-        loginViewModel = ViewModelProvider(this, LoginViewModelFactory())
-                .get(LoginViewModel::class.java)
+        loginViewModel = ViewModelProvider(this, LoginViewModelFactory(application as STApplication))
+            .get(LoginViewModel::class.java)
 
         loginViewModel.loginFormState.observe(this@LoginActivity, Observer {
             val loginState = it ?: return@Observer
@@ -74,16 +75,16 @@ class LoginActivity : AppCompatActivity() {
 
         username.afterTextChanged {
             loginViewModel.loginDataChanged(
-                    username.text.toString(),
-                    password.text.toString()
+                username.text.toString(),
+                password.text.toString()
             )
         }
 
         password.apply {
             afterTextChanged {
                 loginViewModel.loginDataChanged(
-                        username.text.toString(),
-                        password.text.toString()
+                    username.text.toString(),
+                    password.text.toString()
                 )
             }
 
@@ -92,8 +93,8 @@ class LoginActivity : AppCompatActivity() {
                     EditorInfo.IME_ACTION_DONE ->
                         CoroutineScope(Dispatchers.Main).launch {
                             loginViewModel.login(
-                                    username.text.toString(),
-                                    password.text.toString()
+                                username.text.toString(),
+                                password.text.toString()
                             )
                         }
                 }
@@ -133,15 +134,15 @@ class LoginActivity : AppCompatActivity() {
         val displayName = model.displayName
         // TODO : initiate successful logged in experience
         Toast.makeText(
-                applicationContext,
-                "$welcome $displayName",
-                Toast.LENGTH_LONG
+            applicationContext,
+            "$welcome $displayName",
+            Toast.LENGTH_LONG
         ).show()
 
         Toast.makeText(
-                applicationContext,
-                "UID: ${model.userId}",
-                Toast.LENGTH_LONG
+            applicationContext,
+            "UID: ${model.userId}",
+            Toast.LENGTH_LONG
         ).show()
     }
 

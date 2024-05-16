@@ -11,22 +11,29 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
-import com.huikka.supertag.data.AuthDao
-import com.huikka.supertag.data.GameDao
-import com.huikka.supertag.data.model.Game
-import com.huikka.supertag.data.model.Player
+import com.huikka.supertag.data.dao.AuthDao
+import com.huikka.supertag.data.dao.GameDao
+import com.huikka.supertag.data.dao.PlayerDao
+import com.huikka.supertag.data.dto.Player
+import com.huikka.supertag.data.room.CurrentGame
+import com.huikka.supertag.data.room.dao.CurrentGameDao
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class LobbyActivity : AppCompatActivity() {
 
-    private val db = GameDao()
-    private val auth = AuthDao()
+    private lateinit var gameDao: GameDao
+    private lateinit var authDao: AuthDao
+    private lateinit var playerDao: PlayerDao
     private lateinit var gameId: String
     private var isHost: Boolean = false
 
-    private val database = db.getDatabase()
     private var players: ArrayList<Player> = ArrayList()
     private lateinit var adapter: PlayerListAdapter
+
+    private lateinit var currentGameDao: CurrentGameDao
+    private lateinit var currentGame: CurrentGame
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,64 +45,68 @@ class LobbyActivity : AppCompatActivity() {
             insets
         }
 
-        gameId = intent.getStringExtra("GAME_ID")!!
-        isHost = intent.getBooleanExtra("HOST", false)
-
-        val gameIdView = findViewById<TextView>(R.id.game_id)
-        gameIdView.text = gameId
-
-        getPlayers()
-
-        val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
-        adapter = PlayerListAdapter(players, isHost)
-        recyclerView.adapter = adapter
+        val app = application as STApplication
+        authDao = AuthDao(app)
+        gameDao = GameDao(app)
+        playerDao = PlayerDao(app)
 
         val randomButton = findViewById<Button>(R.id.pick_random)
         val startButton = findViewById<Button>(R.id.startButton)
         val leaveButton = findViewById<Button>(R.id.leaveButton)
 
-        leaveButton.setOnClickListener {
-            lifecycleScope.launch {
-                leaveGame()
-            }
-        }
+        CoroutineScope(Dispatchers.Main).launch {
+            currentGameDao = (application as STApplication).currentGameDao
+            currentGame = currentGameDao.getGameDetails()!!
+            gameId = currentGame.id
+            isHost = currentGame.isHost
 
-        if (isHost) {
-            randomButton.setOnClickListener {
-                adapter.selectRandom();
+            val gameIdView = findViewById<TextView>(R.id.game_id)
+            gameIdView.text = gameId
+
+            if (isHost) {
+                randomButton.setOnClickListener {
+                    adapter.selectRandom()
+                }
+                startButton.setOnClickListener {
+                    val runner = adapter.getRunner()
+                    Log.d("TAG", runner.toString())
+                }
+            } else {
+                randomButton.visibility = View.GONE
+                startButton.visibility = View.GONE
             }
-            startButton.setOnClickListener {
-                val runner = adapter.getRunner()
-                Log.d("TAG", runner.toString())
+
+            val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+            adapter = PlayerListAdapter(players, isHost)
+            recyclerView.adapter = adapter
+
+            leaveButton.setOnClickListener {
+                lifecycleScope.launch {
+                    leaveGame()
+                }
             }
-        } else {
-            randomButton.visibility = View.GONE
-            startButton.visibility = View.GONE
+
+            getPlayers()
         }
     }
 
-    suspend fun leaveGame() {
+    private suspend fun leaveGame() {
         if (isHost) {
-            //TODO: remove whole game
+            gameDao.removeGame(gameId)
         } else {
-            db.removeChaser(auth.user?.uid!!, gameId)
+            gameDao.removeChaser(authDao.getUser()!!.id)
         }
+        currentGameDao.deleteGameDetails()
         finish()
     }
 
-    private fun getPlayers() {
-        database.collection("games").whereEqualTo(/* field = */ "id", /* value = */ gameId)
-            .addSnapshotListener { value, e ->
-                if (e != null) {
-                    Log.w("Error", "Listen failed.", e)
-                    return@addSnapshotListener
-                }
-
-                val game = value!!.documents[0].toObject(Game::class.java)
-                for (player in game!!.chasers) {
-                    players.add(player)
-                }
-                adapter.notifyDataSetChanged()
+    private suspend fun getPlayers() {
+        val flow = playerDao.getPlayersByGameIdFlow(gameId)
+        flow.collect {
+            for (player in it) {
+                players.add(player)
             }
+            adapter.notifyDataSetChanged()
+        }
     }
 }
