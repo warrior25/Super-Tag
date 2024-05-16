@@ -56,4 +56,6 @@
     <string name="game_id">Game ID</string>
     <string name="join">Join</string>
     <string name="create_game">Create Game</string>
+    <string name="gameInfoButton">button_to_show_game_info</string>
+    <string name="cardsButton">button_to_show_cards</string>
 </resources>

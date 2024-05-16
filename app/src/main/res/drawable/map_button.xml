@@ -4,8 +4,8 @@
         android:width="2dp"
         android:color="@color/primary_dark" />
 
-    <solid android:color="@color/cardview_light_background" />
+    <solid android:color="@color/primary_light" />
 
     <corners
-        android:radius="115dp" />
+        android:radius="15dp" />
 </shape>
