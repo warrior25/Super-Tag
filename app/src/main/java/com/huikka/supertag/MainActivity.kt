@@ -79,9 +79,13 @@ class MainActivity : AppCompatActivity() {
 
         hostGameButton = findViewById(R.id.hostGameButton)
         hostGameButton.setOnClickListener {
-            CoroutineScope(Dispatchers.Main).launch {
-                hostGame()
-            }
+
+            val intent = Intent(this, GameActivity::class.java)
+            startActivity(intent)
+
+            //CoroutineScope(Dispatchers.Main).launch {
+            //    hostGame()
+            //}
         }
 
         val loading = findViewById<ProgressBar>(R.id.loading)
