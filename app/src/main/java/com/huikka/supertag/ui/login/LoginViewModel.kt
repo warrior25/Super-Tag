@@ -18,9 +18,9 @@ class LoginViewModel(application: STApplication) : ViewModel() {
 
     private val authDao = AuthDao(application)
 
-    suspend fun login(username: String, password: String) {
+    suspend fun login(email: String, password: String) {
         // can be launched in a separate asynchronous job
-        val loggedIn = authDao.login(username, password)
+        val loggedIn = authDao.login(email, password)
 
         if (loggedIn) {
             val displayName = authDao.getUser()!!.userMetadata?.get("nickname").toString()
@@ -31,8 +31,28 @@ class LoginViewModel(application: STApplication) : ViewModel() {
         }
     }
 
-    fun loginDataChanged(username: String, password: String) {
-        if (!isUserNameValid(username)) {
+    suspend fun register(nickname: String, email: String, password: String) {
+        val registered = authDao.register(email, password, nickname)
+
+        if (registered) {
+            val displayName = authDao.getUser()!!.userMetadata?.get("nickname").toString()
+            val userId = authDao.getUser()!!.id
+            _loginResult.value = LoginResult(success = LoggedInUserView(displayName, userId))
+        } else {
+            _loginResult.value = LoginResult(error = R.string.register_failed)
+        }
+    }
+
+    fun loginDataChanged(
+        isRegisterForm: Boolean,
+        nickname: String,
+        email: String,
+        password: String
+    ) {
+        if (!isNickNameValid(nickname) && isRegisterForm) {
+            _loginForm.value = LoginFormState(nicknameError = R.string.invalid_nickname)
+        }
+        if (!isEmailValid(email)) {
             _loginForm.value = LoginFormState(usernameError = R.string.invalid_username)
         } else if (!isPasswordValid(password)) {
             _loginForm.value = LoginFormState(passwordError = R.string.invalid_password)
@@ -41,12 +61,16 @@ class LoginViewModel(application: STApplication) : ViewModel() {
         }
     }
 
+    private fun isNickNameValid(nickname: String): Boolean {
+        return nickname.isNotBlank()
+    }
+
     // A placeholder username validation check
-    private fun isUserNameValid(username: String): Boolean {
-        return if (username.contains('@')) {
-            Patterns.EMAIL_ADDRESS.matcher(username).matches()
+    private fun isEmailValid(email: String): Boolean {
+        return if (email.contains('@')) {
+            Patterns.EMAIL_ADDRESS.matcher(email).matches()
         } else {
-            username.isNotBlank()
+            email.isNotBlank()
         }
     }
 

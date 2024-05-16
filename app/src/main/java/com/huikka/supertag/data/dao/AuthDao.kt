@@ -65,7 +65,8 @@ class AuthDao(application: STApplication) {
 
     private suspend fun addPlayerToDatabase() {
         val user = getUser()
-        val player = Player(id = user!!.id, name = user.userMetadata?.get("nickname").toString())
+        val nickname = user!!.userMetadata?.get("nickname").toString().replace("\"", "")
+        val player = Player(id = user.id, name = nickname)
         db.from("players").insert(player)
     }
 }

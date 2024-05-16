@@ -30,29 +30,33 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val username = binding.username
+        val email = binding.username
         val password = binding.password
         val login = binding.login
         val loading = binding.loading
         val nickname = binding.nickname!!
-        val create_account = binding.createAccount!!
-        val already_account = binding.alreadyAccount!!
+        val createAccount = binding.createAccount!!
+        val alreadyAccount = binding.alreadyAccount!!
         val title = binding.loginViewTitle!!
 
-        loginViewModel = ViewModelProvider(this, LoginViewModelFactory(application as STApplication))
-            .get(LoginViewModel::class.java)
+        loginViewModel = ViewModelProvider(
+            this, LoginViewModelFactory(application as STApplication)
+        )[LoginViewModel::class.java]
 
         loginViewModel.loginFormState.observe(this@LoginActivity, Observer {
             val loginState = it ?: return@Observer
 
-            // disable login button unless both username / password is valid
+            // disable login/register button unless inputs are valid
             login.isEnabled = loginState.isDataValid
 
             if (loginState.usernameError != null) {
-                username.error = getString(loginState.usernameError)
+                email.error = getString(loginState.usernameError)
             }
             if (loginState.passwordError != null) {
                 password.error = getString(loginState.passwordError)
+            }
+            if (loginState.nicknameError != null) {
+                nickname.error = getString(loginState.nicknameError)
             }
         })
 
@@ -62,20 +66,28 @@ class LoginActivity : AppCompatActivity() {
             loading.visibility = View.GONE
             if (loginResult.error != null) {
                 showLoginFailed(loginResult.error)
-                return@Observer
-            }
-            if (loginResult.success != null) {
+            } else if (loginResult.success != null) {
                 updateUiWithUser(loginResult.success)
+                setResult(Activity.RESULT_OK)
+                //Complete and destroy login activity once successful
+                finish()
             }
-            setResult(Activity.RESULT_OK)
-
-            //Complete and destroy login activity once successful
-            finish()
         })
 
-        username.afterTextChanged {
+        nickname.afterTextChanged {
             loginViewModel.loginDataChanged(
-                username.text.toString(),
+                isRegisterForm(),
+                nickname.text.toString(),
+                email.text.toString(),
+                password.text.toString()
+            )
+        }
+
+        email.afterTextChanged {
+            loginViewModel.loginDataChanged(
+                isRegisterForm(),
+                nickname.text.toString(),
+                email.text.toString(),
                 password.text.toString()
             )
         }
@@ -83,20 +95,20 @@ class LoginActivity : AppCompatActivity() {
         password.apply {
             afterTextChanged {
                 loginViewModel.loginDataChanged(
-                    username.text.toString(),
+                    isRegisterForm(),
+                    nickname.text.toString(),
+                    email.text.toString(),
                     password.text.toString()
                 )
             }
 
             setOnEditorActionListener { _, actionId, _ ->
                 when (actionId) {
-                    EditorInfo.IME_ACTION_DONE ->
-                        CoroutineScope(Dispatchers.Main).launch {
-                            loginViewModel.login(
-                                username.text.toString(),
-                                password.text.toString()
-                            )
-                        }
+                    EditorInfo.IME_ACTION_DONE -> CoroutineScope(Dispatchers.Main).launch {
+                        loginViewModel.login(
+                            email.text.toString(), password.text.toString()
+                        )
+                    }
                 }
                 false
             }
@@ -104,24 +116,32 @@ class LoginActivity : AppCompatActivity() {
             login.setOnClickListener {
                 CoroutineScope(Dispatchers.Main).launch {
                     loading.visibility = View.VISIBLE
-                    loginViewModel.login(username.text.toString(), password.text.toString())
+                    if (nickname.visibility == View.VISIBLE) {
+                        loginViewModel.register(
+                            nickname.text.toString(),
+                            email.text.toString(),
+                            password.text.toString()
+                        )
+                    } else {
+                        loginViewModel.login(email.text.toString(), password.text.toString())
+                    }
                 }
             }
 
 
-            already_account.setOnClickListener {
+            alreadyAccount.setOnClickListener {
                 nickname.visibility = View.GONE
-                already_account.visibility = View.GONE
-                create_account.visibility = View.VISIBLE
+                alreadyAccount.visibility = View.GONE
+                createAccount.visibility = View.VISIBLE
                 val loginText = getString(R.string.action_login)
                 title.text = loginText
                 login.text = loginText
             }
 
-            create_account.setOnClickListener {
+            createAccount.setOnClickListener {
                 nickname.visibility = View.VISIBLE
-                already_account.visibility = View.VISIBLE
-                create_account.visibility = View.GONE
+                alreadyAccount.visibility = View.VISIBLE
+                createAccount.visibility = View.GONE
                 val loginText = getString(R.string.action_register)
                 title.text = loginText
                 login.text = loginText
@@ -132,22 +152,17 @@ class LoginActivity : AppCompatActivity() {
     private fun updateUiWithUser(model: LoggedInUserView) {
         val welcome = getString(R.string.welcome)
         val displayName = model.displayName
-        // TODO : initiate successful logged in experience
         Toast.makeText(
-            applicationContext,
-            "$welcome $displayName",
-            Toast.LENGTH_LONG
-        ).show()
-
-        Toast.makeText(
-            applicationContext,
-            "UID: ${model.userId}",
-            Toast.LENGTH_LONG
+            applicationContext, "$welcome $displayName", Toast.LENGTH_LONG
         ).show()
     }
 
     private fun showLoginFailed(@StringRes errorString: Int) {
         Toast.makeText(applicationContext, errorString, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun isRegisterForm(): Boolean {
+        return binding.nickname?.visibility == View.VISIBLE
     }
 }
 
