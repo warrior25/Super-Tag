@@ -26,7 +26,8 @@ class PlayerDao(application: STApplication) {
         longitude: Double,
         locationAccuracy: Float,
         speed: Float,
-        bearing: Float
+        bearing: Float,
+        zoneId: Int?
     ): Error? {
         try {
             db.from("players").update({
@@ -35,6 +36,7 @@ class PlayerDao(application: STApplication) {
                 set("locationAccuracy", locationAccuracy)
                 set("speed", speed)
                 set("bearing", bearing)
+                set("zoneId", zoneId)
             }) {
                 filter {
                     eq("id", id)
@@ -77,17 +79,9 @@ class PlayerDao(application: STApplication) {
 
     suspend fun setZoneId(playerId: String, zoneId: Int?): Error? {
         try {
-            if (zoneId != null) {
-                db.from("players").update({ set("zoneId", zoneId) }) {
-                    filter {
-                        eq("id", playerId)
-                    }
-                }
-            } else {
-                db.from("players").update({ setToNull("zoneId") }) {
-                    filter {
-                        eq("id", playerId)
-                    }
+            db.from("players").update({ set("zoneId", zoneId) }) {
+                filter {
+                    eq("id", playerId)
                 }
             }
         } catch (e: Exception) {

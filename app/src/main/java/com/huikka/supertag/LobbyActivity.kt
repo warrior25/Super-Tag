@@ -33,6 +33,9 @@ class LobbyActivity : AppCompatActivity() {
 
     private lateinit var playerId: String
 
+    private lateinit var locationManager: LocationManager
+    private lateinit var locationListener: PlayerLocationListener
+
     private var players: ArrayList<Player> = ArrayList()
     private lateinit var adapter: PlayerListAdapter
 
@@ -104,8 +107,8 @@ class LobbyActivity : AppCompatActivity() {
         }
 
         // TODO: Start tracking location only after game starts
-        val locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        val locationListener = PlayerLocationListener(app, playerId)
+        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        locationListener = PlayerLocationListener(app, playerId)
         if (ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
@@ -124,6 +127,7 @@ class LobbyActivity : AppCompatActivity() {
         } else {
             playerDao.removeFromGame(playerId)
         }
+        locationManager.removeUpdates(locationListener)
         finish()
     }
 

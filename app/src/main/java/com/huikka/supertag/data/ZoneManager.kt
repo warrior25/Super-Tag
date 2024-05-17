@@ -1,9 +1,8 @@
 package com.huikka.supertag.data
 
-import android.util.Log
+import android.location.Location
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.ZoneDao
-import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.dto.Zone
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -30,20 +29,17 @@ class ZoneManager(application: STApplication) {
     }
 
     // Function to check if the player's location overlaps with the zone
-    private fun isPlayerInZone(
-        zone: Zone, player: Player
+    private fun isLocationInZone(
+        zone: Zone, loc: Location
     ): Boolean {
-        val distance =
-            haversine(zone.latitude, zone.longitude, player.latitude!!, player.longitude!!)
-        Log.d("HARVESINE", distance.toString())
-        return distance <= zone.radius + player.locationAccuracy!!
+        val distance = haversine(zone.latitude, zone.longitude, loc.latitude, loc.longitude)
+        return distance <= zone.radius + loc.accuracy
     }
 
-    suspend fun getPlayerZone(player: Player): Zone? {
-        Log.d("PLAYER", player.toString())
+    suspend fun getZoneFromLocation(loc: Location): Zone? {
         val zones = zoneDao.getZones()
         for (zone in zones) {
-            if (isPlayerInZone(zone, player)) {
+            if (isLocationInZone(zone, loc)) {
                 return zone
             }
         }

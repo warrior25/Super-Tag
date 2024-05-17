@@ -16,12 +16,10 @@ class PlayerLocationListener(application: STApplication, private val playerId: S
 
     override fun onLocationChanged(loc: Location) {
         CoroutineScope(Dispatchers.IO).launch {
+            val zoneId = zoneManager.getZoneFromLocation(loc)?.id
             playerDao.updatePlayerLocation(
-                playerId, loc.latitude, loc.longitude, loc.accuracy, loc.speed, loc.bearing
+                playerId, loc.latitude, loc.longitude, loc.accuracy, loc.speed, loc.bearing, zoneId
             )
-            val player = playerDao.getPlayerById(playerId)!!
-            val zoneId = zoneManager.getPlayerZone(player)?.id
-            playerDao.setZoneId(playerId, zoneId)
         }
     }
 }

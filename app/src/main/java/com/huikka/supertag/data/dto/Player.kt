@@ -15,5 +15,6 @@ data class Player(
     @SerialName("bearing") val bearing: Float? = null,
     @SerialName("icon") val icon: String? = null,
     @SerialName("gameId") val gameId: String? = null,
-    @SerialName("isHost") val isHost: Boolean? = null
+    @SerialName("isHost") val isHost: Boolean? = null,
+    @SerialName("zone") val zone: String? = null
 )
