@@ -63,6 +63,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val logoutButton = findViewById<Button>(R.id.logoutButton)
+        logoutButton.setOnClickListener {
+            CoroutineScope(Dispatchers.Main).launch {
+                authDao.logout()
+                val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                startActivity(intent)
+            }
+        }
+
         hostGameButton = findViewById(R.id.hostGameButton)
         hostGameButton.setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
