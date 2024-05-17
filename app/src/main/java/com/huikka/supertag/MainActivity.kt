@@ -19,9 +19,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
+import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dto.Game
-import com.huikka.supertag.data.room.CurrentGame
-import com.huikka.supertag.data.room.dao.CurrentGameDao
 import com.huikka.supertag.ui.login.LoginActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,8 +30,9 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var gameDao: GameDao
     private lateinit var authDao: AuthDao
+    private lateinit var playerDao: PlayerDao
 
-    private lateinit var currentGameDao: CurrentGameDao
+    private lateinit var playerId: String
 
     // UI elements
     private lateinit var joinGameButton: Button
@@ -52,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         val app = application as STApplication
         authDao = AuthDao(app)
         gameDao = GameDao(app)
-        currentGameDao = app.currentGameDao
+        playerDao = PlayerDao(app)
 
         // Setup button actions
         joinGameButton = findViewById(R.id.joinGameButton)
@@ -86,11 +86,12 @@ class MainActivity : AppCompatActivity() {
             if (session == null) {
                 val intent = Intent(this@MainActivity, LoginActivity::class.java)
                 startActivity(intent)
+                finish()
             } else {
-                val currentGame = gameDao.getCurrentGameInfo(authDao.getUser()!!.id)
-                Log.d("CURRENT_GAME", currentGame.toString())
+                playerId = authDao.getUser()!!.id
+                val currentGame = gameDao.getCurrentGameInfo(playerId)
                 if (currentGame.gameId != null) {
-                    startLobbyActivity(currentGame.gameId, currentGame.isHost)
+                    startLobbyActivity()
                 }
             }
             loading.visibility = View.GONE
@@ -163,19 +164,19 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        err = gameDao.addPlayer(authDao.getUser()!!.id, gameId, true)
+        err = playerDao.addToGame(playerId, gameId, true)
 
         if (err != null) {
             Log.e("HOST", "Failed to host game: $err")
             return
         }
 
-        startLobbyActivity(gameId, true)
+        startLobbyActivity()
     }
 
     private suspend fun joinGame(gameId: String) {
-        val err = gameDao.addPlayer(
-            authDao.getUser()!!.id, gameId
+        val err = playerDao.addToGame(
+            playerId, gameId
         )
         if (err != null) {
             Toast.makeText(
@@ -187,15 +188,12 @@ class MainActivity : AppCompatActivity() {
             applicationContext, "Joined game $gameId", Toast.LENGTH_LONG
         ).show()
 
-        startLobbyActivity(gameId)
-
+        startLobbyActivity()
     }
 
-    private fun startLobbyActivity(gameId: String, host: Boolean = false) {
+    private fun startLobbyActivity() {
         val intent = Intent(this, LobbyActivity::class.java)
         CoroutineScope(Dispatchers.Main).launch {
-            currentGameDao.deleteGameDetails()
-            currentGameDao.insertGameDetails(CurrentGame(gameId, host))
             startActivity(intent)
             gameIdEditText.text.clear()
             gameIdEditText.clearFocus()

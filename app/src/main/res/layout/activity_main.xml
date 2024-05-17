@@ -44,15 +44,6 @@
                 android:maxLength="6"
                 android:textAlignment="center" />
 
-            <ProgressBar
-                android:id="@+id/loading"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_gravity="center"
-                android:background="#FFFFFF"
-                android:backgroundTint="#FFFFFF"
-                android:visibility="visible"
-                tools:visibility="invisible" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <Button
@@ -86,5 +77,19 @@
         android:text="@string/logout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/loading"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_gravity="center"
+        android:background="#FFFFFF"
+        android:backgroundTint="#FFFFFF"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="invisible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

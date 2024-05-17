@@ -8,8 +8,8 @@ data class Player(
 
     @SerialName("id") val id: String,
     @SerialName("name") val name: String,
-    @SerialName("latitude") val latitude: Float? = null,
-    @SerialName("longitude") val longitude: Float? = null,
+    @SerialName("latitude") val latitude: Double? = null,
+    @SerialName("longitude") val longitude: Double? = null,
     @SerialName("locationAccuracy") val locationAccuracy: Float? = null,
     @SerialName("speed") val speed: Float? = null,
     @SerialName("bearing") val bearing: Float? = null,

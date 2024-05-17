@@ -30,35 +30,6 @@ class GameDao(application: STApplication) {
         }.countOrNull() != null
     }
 
-    suspend fun removePlayer(id: String): Error? {
-        try {
-            db.from("players").update({ setToNull("gameId") }) {
-                filter {
-                    eq("id", id)
-                }
-            }
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
-    }
-
-    suspend fun addPlayer(playerId: String, gameId: String, isHost: Boolean = false): Error? {
-        try {
-            db.from("players").update({
-                set("gameId", gameId)
-                set("isHost", isHost)
-            }) {
-                filter {
-                    eq("id", playerId)
-                }
-            }
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
-    }
-
     suspend fun setRunnerId(gameId: String, playerId: String): Error? {
         try {
             db.from("games").update({

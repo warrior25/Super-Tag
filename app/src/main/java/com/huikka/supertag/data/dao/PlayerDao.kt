@@ -19,4 +19,59 @@ class PlayerDao(application: STApplication) {
             Player::id, filter = FilterOperation("gameId", FilterOperator.EQ, gameId)
         )
     }
+
+    suspend fun updatePlayerLocation(
+        id: String,
+        latitude: Double,
+        longitude: Double,
+        locationAccuracy: Float,
+        speed: Float,
+        bearing: Float
+    ): Error? {
+        try {
+            db.from("players").update({
+                set("latitude", latitude)
+                set("longitude", longitude)
+                set("locationAccuracy", locationAccuracy)
+                set("speed", speed)
+                set("bearing", bearing)
+            }) {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
+    }
+
+    suspend fun addToGame(playerId: String, gameId: String, isHost: Boolean = false): Error? {
+        try {
+            db.from("players").update({
+                set("gameId", gameId)
+                set("isHost", isHost)
+            }) {
+                filter {
+                    eq("id", playerId)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
+    }
+
+    suspend fun removeFromGame(id: String): Error? {
+        try {
+            db.from("players").update({ setToNull("gameId") }) {
+                filter {
+                    eq("id", id)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
+    }
 }
