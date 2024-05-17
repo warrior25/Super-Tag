@@ -33,7 +33,7 @@ class GameDao(application: STApplication) {
     suspend fun setRunnerId(gameId: String, playerId: String): Error? {
         try {
             db.from("games").update({
-                set("runnerId", playerId)
+                set("runner_id", playerId)
             }) {
                 filter {
                     eq("id", gameId)
@@ -47,7 +47,7 @@ class GameDao(application: STApplication) {
 
     suspend fun getRunnerId(gameId: String): String? {
         return try {
-            db.from("games").select(columns = Columns.list("runnerId")) {
+            db.from("games").select(columns = Columns.list("runner_id")) {
                 filter {
                     eq("id", gameId)
                 }
@@ -100,7 +100,7 @@ class GameDao(application: STApplication) {
     }
 
     suspend fun getCurrentGameInfo(userId: String): CurrentGame {
-        return db.from("players").select(columns = Columns.list("gameId", "isHost")) {
+        return db.from("players").select(columns = Columns.list("game_id", "is_host")) {
             filter {
                 eq("id", userId)
             }

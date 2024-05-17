@@ -10,11 +10,11 @@ data class Player(
     @SerialName("name") val name: String,
     @SerialName("latitude") val latitude: Double? = null,
     @SerialName("longitude") val longitude: Double? = null,
-    @SerialName("locationAccuracy") val locationAccuracy: Float? = null,
+    @SerialName("location_accuracy") val locationAccuracy: Float? = null,
     @SerialName("speed") val speed: Float? = null,
     @SerialName("bearing") val bearing: Float? = null,
     @SerialName("icon") val icon: String? = null,
-    @SerialName("gameId") val gameId: String? = null,
-    @SerialName("isHost") val isHost: Boolean? = null,
-    @SerialName("zone") val zone: String? = null
+    @SerialName("game_id") val gameId: String? = null,
+    @SerialName("is_host") val isHost: Boolean? = null,
+    @SerialName("zone_id") val zone: String? = null
 )

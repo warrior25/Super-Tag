@@ -8,13 +8,13 @@ data class Game(
 
     @SerialName("id") val id: String,
     @SerialName("status") val status: String,
-    @SerialName("runnerId") val runnerId: String? = null,
-    @SerialName("runnerMoney") val runnerMoney: Int? = null,
-    @SerialName("chaserMoney") val chaserMoney: Int? = null,
-    @SerialName("robberyInProgress") val robberyInProgress: Boolean? = null,
-    @SerialName("startTime") val startTime: String? = null,
-    @SerialName("endTime") val endTime: String? = null,
-    @SerialName("headStart") val headStart: Int? = null,
-    @SerialName("nextRunnerLocationUpdate") val nextRunnerLocationUpdate: String? = null,
-    @SerialName("lastRunnerLocationUpdate") val lastRunnerLocationUpdate: String? = null
+    @SerialName("runner_id") val runnerId: String? = null,
+    @SerialName("runner_money") val runnerMoney: Int? = null,
+    @SerialName("chaser_money") val chaserMoney: Int? = null,
+    @SerialName("robbery_in_progress") val robberyInProgress: Boolean? = null,
+    @SerialName("start_time") val startTime: String? = null,
+    @SerialName("end_time") val endTime: String? = null,
+    @SerialName("head_start") val headStart: Int? = null,
+    @SerialName("next_runner_location_update") val nextRunnerLocationUpdate: String? = null,
+    @SerialName("last_runner_location_update") val lastRunnerLocationUpdate: String? = null
 )
