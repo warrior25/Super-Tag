@@ -1,9 +1,14 @@
 package com.huikka.supertag
 
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -35,6 +40,19 @@ class GameActivity : AppCompatActivity() {
 
         getInstance().userAgentValue = applicationContext.packageName
         setContentView(R.layout.activity_game)
+
+        val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
+        cardsButton.setOnClickListener {
+            val bottomSheetDialog = BottomSheetDialog(this)
+            val view = LayoutInflater.from(this).inflate(R.layout.cards_sheet_layout, null)
+            bottomSheetDialog.setContentView(view)
+            bottomSheetDialog.show()
+
+            val buttonOne = view.findViewById<Button>(R.id.firstButton)
+            buttonOne.setOnClickListener {
+                Toast.makeText(this, "First button clicked", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         map = findViewById(R.id.map)
         map.setTileSource(TileSourceFactory.MAPNIK)

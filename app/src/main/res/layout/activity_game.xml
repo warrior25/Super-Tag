@@ -31,13 +31,13 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
         android:contentDescription="@string/gameInfoButton"
-        app:layout_constraintBottom_toTopOf="@+id/imageButton"
+        app:layout_constraintBottom_toTopOf="@+id/cardsButton"
         app:layout_constraintEnd_toEndOf="parent"
         android:background="@drawable/map_button"
         app:srcCompat="@drawable/info" />
 
     <ImageButton
-        android:id="@+id/imageButton"
+        android:id="@+id/cardsButton"
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:layout_marginEnd="16dp"
