@@ -15,8 +15,6 @@ import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dto.Player
-import com.huikka.supertag.data.room.CurrentGame
-import com.huikka.supertag.data.room.dao.CurrentGameDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,9 +29,6 @@ class LobbyActivity : AppCompatActivity() {
 
     private var players: ArrayList<Player> = ArrayList()
     private lateinit var adapter: PlayerListAdapter
-
-    private lateinit var currentGameDao: CurrentGameDao
-    private lateinit var currentGame: CurrentGame
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,15 +50,23 @@ class LobbyActivity : AppCompatActivity() {
         val leaveButton = findViewById<Button>(R.id.leaveButton)
 
         CoroutineScope(Dispatchers.Main).launch {
-            currentGameDao = (application as STApplication).currentGameDao
-            currentGame = currentGameDao.getGameDetails()!!
-            gameId = currentGame.id
-            isHost = currentGame.isHost
+            val game = gameDao.getCurrentGameInfo(authDao.getUser()!!.id)
+            gameId = game.gameId!!
+            isHost = game.isHost
 
             val gameIdView = findViewById<TextView>(R.id.game_id)
             gameIdView.text = gameId
 
+            val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
+            adapter = PlayerListAdapter(app, players, isHost)
+            recyclerView.adapter = adapter
+
             if (isHost) {
+                randomButton.visibility = View.VISIBLE
+                startButton.visibility = View.VISIBLE
+                if (gameDao.getRunnerId(gameId) == null) {
+                    gameDao.setRunnerId(gameId, authDao.getUser()!!.id)
+                }
                 randomButton.setOnClickListener {
                     adapter.selectRandom()
                 }
@@ -72,13 +75,16 @@ class LobbyActivity : AppCompatActivity() {
                     Log.d("TAG", runner.toString())
                 }
             } else {
-                randomButton.visibility = View.GONE
-                startButton.visibility = View.GONE
+                CoroutineScope(Dispatchers.IO).launch {
+                    val flow = gameDao.getGameFlow(gameId)
+                    flow.collect {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            adapter.setRunner(it.runnerId!!)
+                        }
+                    }
+                }
             }
 
-            val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
-            adapter = PlayerListAdapter(players, isHost)
-            recyclerView.adapter = adapter
 
             leaveButton.setOnClickListener {
                 lifecycleScope.launch {
@@ -94,15 +100,15 @@ class LobbyActivity : AppCompatActivity() {
         if (isHost) {
             gameDao.removeGame(gameId)
         } else {
-            gameDao.removeChaser(authDao.getUser()!!.id)
+            gameDao.removePlayer(authDao.getUser()!!.id)
         }
-        currentGameDao.deleteGameDetails()
         finish()
     }
 
     private suspend fun getPlayers() {
         val flow = playerDao.getPlayersByGameIdFlow(gameId)
         flow.collect {
+            players.clear()
             for (player in it) {
                 players.add(player)
             }

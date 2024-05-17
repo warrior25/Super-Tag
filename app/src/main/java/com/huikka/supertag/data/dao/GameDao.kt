@@ -1,11 +1,14 @@
 package com.huikka.supertag.data.dao
 
 import com.huikka.supertag.STApplication
-import com.huikka.supertag.data.dto.CurrentGameDto
+import com.huikka.supertag.data.dto.CurrentGame
 import com.huikka.supertag.data.dto.Game
+import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.realtime.selectSingleValueAsFlow
+import kotlinx.coroutines.flow.Flow
 
 class GameDao(application: STApplication) {
 
@@ -27,7 +30,7 @@ class GameDao(application: STApplication) {
         }.countOrNull() != null
     }
 
-    suspend fun removeChaser(id: String): Error? {
+    suspend fun removePlayer(id: String): Error? {
         try {
             db.from("players").update({ setToNull("gameId") }) {
                 filter {
@@ -40,7 +43,7 @@ class GameDao(application: STApplication) {
         return null
     }
 
-    suspend fun addChaser(playerId: String, gameId: String, isHost: Boolean = false): Error? {
+    suspend fun addPlayer(playerId: String, gameId: String, isHost: Boolean = false): Error? {
         try {
             db.from("players").update({
                 set("gameId", gameId)
@@ -56,12 +59,46 @@ class GameDao(application: STApplication) {
         return null
     }
 
+    suspend fun setRunnerId(gameId: String, playerId: String): Error? {
+        try {
+            db.from("games").update({
+                set("runnerId", playerId)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
+    }
+
+    suspend fun getRunnerId(gameId: String): String? {
+        return try {
+            db.from("games").select(columns = Columns.list("runnerId")) {
+                filter {
+                    eq("id", gameId)
+                }
+            }.decodeSingleOrNull<String>()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    @OptIn(SupabaseExperimental::class)
+    fun getGameFlow(gameId: String): Flow<Game> {
+        return db.from("games").selectSingleValueAsFlow(Game::id) {
+            eq("id", gameId)
+        }
+    }
+
     suspend fun createGame(game: Game): Error? {
         try {
             val gameDto = Game(
                 id = game.id,
                 status = game.status,
-                runner = game.runner,
+                runnerId = game.runnerId,
                 runnerMoney = game.runnerMoney,
                 chaserMoney = game.chaserMoney,
                 robberyInProgress = game.robberyInProgress,
@@ -91,11 +128,11 @@ class GameDao(application: STApplication) {
         return null
     }
 
-    suspend fun getCurrentGameInfo(userId: String): CurrentGameDto {
+    suspend fun getCurrentGameInfo(userId: String): CurrentGame {
         return db.from("players").select(columns = Columns.list("gameId", "isHost")) {
             filter {
                 eq("id", userId)
             }
-        }.decodeSingle<CurrentGameDto>()
+        }.decodeSingle<CurrentGame>()
     }
 }
