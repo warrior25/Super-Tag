@@ -74,4 +74,33 @@ class PlayerDao(application: STApplication) {
         }
         return null
     }
+
+    suspend fun setZoneId(playerId: String, zoneId: Int?): Error? {
+        try {
+            if (zoneId != null) {
+                db.from("players").update({ set("zoneId", zoneId) }) {
+                    filter {
+                        eq("id", playerId)
+                    }
+                }
+            } else {
+                db.from("players").update({ setToNull("zoneId") }) {
+                    filter {
+                        eq("id", playerId)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
+    }
+
+    suspend fun getPlayerById(id: String): Player? {
+        return db.from("players").select {
+            filter {
+                eq("id", id)
+            }
+        }.decodeSingleOrNull<Player>()
+    }
 }

@@ -135,7 +135,7 @@ class MainActivity : AppCompatActivity() {
                 // decision.
                 locationPermissionFailed = true
                 locationPermissionDenied()
-            } else {
+            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 requestBackgroundLocation.launch(
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 )
@@ -158,13 +158,24 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            showPermissionsError(false)
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(
+                    this, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                showPermissionsError(false)
+            } else {
+                showPermissionsError(true)
+            }
         } else {
-            showPermissionsError(true)
+            if (ActivityCompat.checkSelfPermission(
+                    this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                showPermissionsError(false)
+            } else {
+                showPermissionsError(true)
+            }
         }
     }
 
