@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <declare-styleable name="CustomTimer">
+        <attr name="customTime" format="integer" />
+        <attr name="customIcon" format="reference" />
+    </declare-styleable>
+</resources>
