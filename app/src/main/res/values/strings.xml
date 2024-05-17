@@ -29,4 +29,8 @@
     <string name="random">Random</string>
     <string name="leave_game">Leave Game</string>
     <string name="logout">Logout</string>
+    <string name="insufficient_permissions">Super Tag needs location permissions to function properly. Please allow location access all the time.</string>
+    <string name="permissions_denied">Unable to get requested permissions. Click the button below to give location permission manually.</string>
+    <string name="fix_now">Fix now</string>
+    <string name="open_settings">Open settings</string>
 </resources>

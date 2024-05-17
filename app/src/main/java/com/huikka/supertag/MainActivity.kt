@@ -3,12 +3,15 @@ package com.huikka.supertag
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var joinGameButton: Button
     private lateinit var hostGameButton: FloatingActionButton
     private lateinit var gameIdEditText: EditText
+    private lateinit var permissionsError: TextView
+    private lateinit var fixPermissionsButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,8 +100,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             loading.visibility = View.GONE
-            hostGameButton.visibility = View.VISIBLE
         }
+
+        permissionsError = findViewById(R.id.permissionsInfoText)
+        fixPermissionsButton = findViewById(R.id.fixPermissionsButton)
+
+        var locationPermissionFailed = false
 
         val requestBackgroundLocation = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -107,6 +116,10 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
+                locationPermissionFailed = true
+                locationPermissionDenied()
+            } else {
+                showPermissionsError(false)
             }
         }
 
@@ -120,6 +133,8 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
+                locationPermissionFailed = true
+                locationPermissionDenied()
             } else {
                 requestBackgroundLocation.launch(
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
@@ -127,21 +142,52 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestFineLocation.launch(
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-        } else if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestBackgroundLocation.launch(
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            )
+        fixPermissionsButton.setOnClickListener {
+            if (locationPermissionFailed) {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri: Uri = Uri.fromParts("package", packageName, null)
+                intent.data = uri
+                startActivity(intent)
+            } else {
+                requestFineLocation.launch(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            showPermissionsError(false)
+        } else {
+            showPermissionsError(true)
+        }
+    }
+
+    private fun showPermissionsError(show: Boolean) {
+        if (show) {
+            hostGameButton.visibility = View.GONE
+            joinGameButton.visibility = View.GONE
+            gameIdEditText.visibility = View.GONE
+            permissionsError.visibility = View.VISIBLE
+            fixPermissionsButton.visibility = View.VISIBLE
+
+        } else {
+            hostGameButton.visibility = View.VISIBLE
+            joinGameButton.visibility = View.VISIBLE
+            gameIdEditText.visibility = View.VISIBLE
+            permissionsError.visibility = View.GONE
+            fixPermissionsButton.visibility = View.GONE
+        }
+    }
+
+    private fun locationPermissionDenied() {
+        fixPermissionsButton.text = getText(R.string.open_settings)
+        permissionsError.text = getText(R.string.permissions_denied)
     }
 
     private suspend fun hostGame() {
