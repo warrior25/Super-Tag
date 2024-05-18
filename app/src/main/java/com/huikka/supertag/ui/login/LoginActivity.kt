@@ -1,6 +1,7 @@
 package com.huikka.supertag.ui.login
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,6 +13,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.huikka.supertag.MainActivity
 import com.huikka.supertag.R
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.databinding.ActivityLoginBinding
@@ -68,6 +70,8 @@ class LoginActivity : AppCompatActivity() {
                 showLoginFailed(loginResult.error)
             } else if (loginResult.success != null) {
                 updateUiWithUser(loginResult.success)
+                val intent = Intent(this, MainActivity::class.java)
+                startActivity(intent)
                 setResult(Activity.RESULT_OK)
                 //Complete and destroy login activity once successful
                 finish()

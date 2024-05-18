@@ -30,39 +30,10 @@ class GameDao(application: STApplication) {
         }.countOrNull() != null
     }
 
-    suspend fun removePlayer(id: String): Error? {
-        try {
-            db.from("players").update({ setToNull("gameId") }) {
-                filter {
-                    eq("id", id)
-                }
-            }
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
-    }
-
-    suspend fun addPlayer(playerId: String, gameId: String, isHost: Boolean = false): Error? {
-        try {
-            db.from("players").update({
-                set("gameId", gameId)
-                set("isHost", isHost)
-            }) {
-                filter {
-                    eq("id", playerId)
-                }
-            }
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
-    }
-
     suspend fun setRunnerId(gameId: String, playerId: String): Error? {
         try {
             db.from("games").update({
-                set("runnerId", playerId)
+                set("runner_id", playerId)
             }) {
                 filter {
                     eq("id", gameId)
@@ -76,7 +47,7 @@ class GameDao(application: STApplication) {
 
     suspend fun getRunnerId(gameId: String): String? {
         return try {
-            db.from("games").select(columns = Columns.list("runnerId")) {
+            db.from("games").select(columns = Columns.list("runner_id")) {
                 filter {
                     eq("id", gameId)
                 }
@@ -129,7 +100,7 @@ class GameDao(application: STApplication) {
     }
 
     suspend fun getCurrentGameInfo(userId: String): CurrentGame {
-        return db.from("players").select(columns = Columns.list("gameId", "isHost")) {
+        return db.from("players").select(columns = Columns.list("game_id", "is_host")) {
             filter {
                 eq("id", userId)
             }

@@ -3,12 +3,15 @@ package com.huikka.supertag
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,9 +22,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
+import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dto.Game
-import com.huikka.supertag.data.room.CurrentGame
-import com.huikka.supertag.data.room.dao.CurrentGameDao
 import com.huikka.supertag.ui.login.LoginActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,13 +33,16 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var gameDao: GameDao
     private lateinit var authDao: AuthDao
+    private lateinit var playerDao: PlayerDao
 
-    private lateinit var currentGameDao: CurrentGameDao
+    private lateinit var playerId: String
 
     // UI elements
     private lateinit var joinGameButton: Button
     private lateinit var hostGameButton: FloatingActionButton
     private lateinit var gameIdEditText: EditText
+    private lateinit var permissionsError: TextView
+    private lateinit var fixPermissionsButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         val app = application as STApplication
         authDao = AuthDao(app)
         gameDao = GameDao(app)
-        currentGameDao = app.currentGameDao
+        playerDao = PlayerDao(app)
 
         // Setup button actions
         joinGameButton = findViewById(R.id.joinGameButton)
@@ -86,16 +91,21 @@ class MainActivity : AppCompatActivity() {
             if (session == null) {
                 val intent = Intent(this@MainActivity, LoginActivity::class.java)
                 startActivity(intent)
+                finish()
             } else {
-                val currentGame = gameDao.getCurrentGameInfo(authDao.getUser()!!.id)
-                Log.d("CURRENT_GAME", currentGame.toString())
+                playerId = authDao.getUser()!!.id
+                val currentGame = gameDao.getCurrentGameInfo(playerId)
                 if (currentGame.gameId != null) {
-                    startLobbyActivity(currentGame.gameId, currentGame.isHost)
+                    startLobbyActivity()
                 }
             }
             loading.visibility = View.GONE
-            hostGameButton.visibility = View.VISIBLE
         }
+
+        permissionsError = findViewById(R.id.permissionsInfoText)
+        fixPermissionsButton = findViewById(R.id.fixPermissionsButton)
+
+        var locationPermissionFailed = false
 
         val requestBackgroundLocation = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -106,6 +116,10 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
+                locationPermissionFailed = true
+                locationPermissionDenied()
+            } else {
+                showPermissionsError(false)
             }
         }
 
@@ -119,28 +133,72 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-            } else {
+                locationPermissionFailed = true
+                locationPermissionDenied()
+            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 requestBackgroundLocation.launch(
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 )
             }
         }
 
-        if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestFineLocation.launch(
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-        } else if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestBackgroundLocation.launch(
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            )
+        fixPermissionsButton.setOnClickListener {
+            if (locationPermissionFailed) {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri: Uri = Uri.fromParts("package", packageName, null)
+                intent.data = uri
+                startActivity(intent)
+            } else {
+                requestFineLocation.launch(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(
+                    this, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                showPermissionsError(false)
+            } else {
+                showPermissionsError(true)
+            }
+        } else {
+            if (ActivityCompat.checkSelfPermission(
+                    this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                showPermissionsError(false)
+            } else {
+                showPermissionsError(true)
+            }
+        }
+    }
+
+    private fun showPermissionsError(show: Boolean) {
+        if (show) {
+            hostGameButton.visibility = View.GONE
+            joinGameButton.visibility = View.GONE
+            gameIdEditText.visibility = View.GONE
+            permissionsError.visibility = View.VISIBLE
+            fixPermissionsButton.visibility = View.VISIBLE
+
+        } else {
+            hostGameButton.visibility = View.VISIBLE
+            joinGameButton.visibility = View.VISIBLE
+            gameIdEditText.visibility = View.VISIBLE
+            permissionsError.visibility = View.GONE
+            fixPermissionsButton.visibility = View.GONE
+        }
+    }
+
+    private fun locationPermissionDenied() {
+        fixPermissionsButton.text = getText(R.string.open_settings)
+        permissionsError.text = getText(R.string.permissions_denied)
     }
 
     private suspend fun hostGame() {
@@ -163,19 +221,19 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        err = gameDao.addPlayer(authDao.getUser()!!.id, gameId, true)
+        err = playerDao.addToGame(playerId, gameId, true)
 
         if (err != null) {
             Log.e("HOST", "Failed to host game: $err")
             return
         }
 
-        startLobbyActivity(gameId, true)
+        startLobbyActivity()
     }
 
     private suspend fun joinGame(gameId: String) {
-        val err = gameDao.addPlayer(
-            authDao.getUser()!!.id, gameId
+        val err = playerDao.addToGame(
+            playerId, gameId
         )
         if (err != null) {
             Toast.makeText(
@@ -187,15 +245,12 @@ class MainActivity : AppCompatActivity() {
             applicationContext, "Joined game $gameId", Toast.LENGTH_LONG
         ).show()
 
-        startLobbyActivity(gameId)
-
+        startLobbyActivity()
     }
 
-    private fun startLobbyActivity(gameId: String, host: Boolean = false) {
+    private fun startLobbyActivity() {
         val intent = Intent(this, LobbyActivity::class.java)
         CoroutineScope(Dispatchers.Main).launch {
-            currentGameDao.deleteGameDetails()
-            currentGameDao.insertGameDetails(CurrentGame(gameId, host))
             startActivity(intent)
             gameIdEditText.text.clear()
             gameIdEditText.clearFocus()
