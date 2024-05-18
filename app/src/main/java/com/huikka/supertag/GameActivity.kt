@@ -1,43 +1,38 @@
 package com.huikka.supertag
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.ClickableIconOverlay
 import org.osmdroid.views.overlay.CopyrightOverlay
+import org.osmdroid.views.overlay.Polygon
+import org.osmdroid.views.overlay.mylocation.DirectedLocationOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
+
 class GameActivity : AppCompatActivity() {
-    private val REQUEST_PERMISSIONS_REQUEST_CODE = 1
     private lateinit var map: MapView
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        //handle permissions first, before map is created. not depicted here
-
-        //load/initialize the osmdroid configuration, this can be done
-        // This won't work unless you have imported this: org.osmdroid.config.Configuration.*
         getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
-        //setting this before the layout is inflated is a good idea
-        //it 'should' ensure that the map has a writable location for the map cache, even without permissions
-        //if no tiles are displayed, you can try overriding the cache path using Configuration.getInstance().setCachePath
-        //see also StorageUtils
-        //note, the load method also sets the HTTP User Agent to your application's package name, if you abuse osm's
-        //tile servers will get you banned based on this string.
 
-        //inflate and create the map
         // HTTP User-Agent variable to not ban other users
-
         getInstance().userAgentValue = applicationContext.packageName
         setContentView(R.layout.activity_game)
 
@@ -54,6 +49,7 @@ class GameActivity : AppCompatActivity() {
             }
         }
 
+        // map initialization
         map = findViewById(R.id.map)
         map.setTileSource(TileSourceFactory.MAPNIK)
         map.maxZoomLevel = 18.0
@@ -63,16 +59,16 @@ class GameActivity : AppCompatActivity() {
         map.setTilesScaledToDpi(true)
 
         val mapController = map.controller
-        val startPoint = GeoPoint(61.4498, 23.8595);
+        val startPoint = GeoPoint(61.4498, 23.8595)
         mapController.setCenter(startPoint);
         mapController.setZoom(15.0)
 
-        // Add my location to map
-        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), this.map)
-        myLocationOverlay.enableMyLocation()
-        myLocationOverlay.enableFollowLocation()
-        myLocationOverlay.isDrawAccuracyEnabled = true
-        map.overlays.add(myLocationOverlay)
+        // draw items on map
+        drawUserOnMap()
+        drawPlayersOnMap()
+        drawATMsV1()
+        drawATMsV2()
+
 
         // Mandatory copy-right mention
         val cr = CopyrightOverlay(this)
@@ -97,42 +93,68 @@ class GameActivity : AppCompatActivity() {
         map.onPause()  //needed for compass, my location overlays, v6.0.0 and up
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        val permissionsToRequest = ArrayList<String>()
-        var i = 0
-        while (i < grantResults.size) {
-            permissionsToRequest.add(permissions[i])
-            i++
-        }
-        if (permissionsToRequest.size > 0) {
-            ActivityCompat.requestPermissions(
-                this,
-                permissionsToRequest.toTypedArray(),
-                REQUEST_PERMISSIONS_REQUEST_CODE
-            )
-        }
+    private fun drawUserOnMap() {
+        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), this.map)
+        myLocationOverlay.enableMyLocation()
+        myLocationOverlay.enableFollowLocation()
+        myLocationOverlay.isDrawAccuracyEnabled = true
+        map.overlays.add(myLocationOverlay)
+    }
+
+    private fun drawPlayersOnMap() {
+        val conf = Bitmap.Config.ARGB_8888
+        val bmp = Bitmap.createBitmap(100, 100, conf)
+        val canvas1 = Canvas(bmp)
+
+        // paint defines the text color, stroke width and size
+        val color = Paint()
+        color.textSize = 35f
+        color.color = Color.WHITE
+
+        // draw background color for bitmap
+        canvas1.drawCircle(50f, 50f, 50f, color)
+
+        // modify canvas
+        canvas1.drawBitmap(
+            BitmapFactory.decodeResource(
+                resources, R.drawable.agent
+            ), 15f, 15f, color
+        )
+
+
+        // Add player to map
+        val playerLocation = GeoPoint(61.4478, 23.8620)
+        val playerOverlay = DirectedLocationOverlay(this)
+        playerOverlay.location = playerLocation
+        playerOverlay.setDirectionArrow(bmp)
+
+        map.overlays.add(playerOverlay)
+
+        //TODO("Get players from database")
+    }
+    
+
+    private fun drawATMsV1() {
+        val ATMLocation = GeoPoint(61.4498, 23.8595)
+        val radius = 50.0
+        val circle = Polygon()
+        circle.points = Polygon.pointsAsCircle(ATMLocation, radius)
+
+        map.overlays.add(circle)
+
+    }
+
+    private fun drawATMsV2() {
+        val ATMLocation = GeoPoint(61.4488, 23.8590)
+        val ATMOverlay = DirectedLocationOverlay(this)
+        ATMOverlay.location = ATMLocation
+        ATMOverlay.setAccuracy(50)
+
+        map.overlays.add(ATMOverlay)
+
+        //TODO("Get ATMs from database, Set icon for zone")
+
     }
 
 
-    /*private fun requestPermissionsIfNecessary(String[] permissions) {
-        val permissionsToRequest = ArrayList<String>();
-        permissions.forEach { permission ->
-        if (ContextCompat.checkSelfPermission(this, permission)
-                != PackageManager.PERMISSION_GRANTED) {
-            // Permission is not granted
-            permissionsToRequest.add(permission);
-        }
-    }
-        if (permissionsToRequest.size() > 0) {
-            ActivityCompat.requestPermissions(
-                    this,
-                    permissionsToRequest.toArray(new String[0]),
-                    REQUEST_PERMISSIONS_REQUEST_CODE);
-        }
-    }*/
 }
