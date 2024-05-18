@@ -103,6 +103,11 @@ class LobbyActivity : AppCompatActivity() {
                     leaveGame()
                 }
             }
+
+            startButton.setOnClickListener {
+                val intent = Intent(baseContext, GameActivity::class.java)
+                startActivity(intent)
+            }
             getPlayers()
         }
 
@@ -119,10 +124,7 @@ class LobbyActivity : AppCompatActivity() {
                 LocationManager.GPS_PROVIDER, 5000, 10f, locationListener
             )
 
-            startButton.setOnClickListener {
-                val intent = Intent(baseContext, GameActivity::class.java)
-                startActivity(intent)
-            }
+
         }
     }
 
