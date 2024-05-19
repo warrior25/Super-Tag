@@ -20,6 +20,7 @@ import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dto.Player
+import com.huikka.supertag.data.helpers.GameStatuses
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -89,9 +90,12 @@ class LobbyActivity : AppCompatActivity() {
             } else {
                 CoroutineScope(Dispatchers.IO).launch {
                     val flow = gameDao.getGameFlow(gameId)
-                    flow.collect {
+                    flow.collect { game ->
                         CoroutineScope(Dispatchers.Main).launch {
-                            adapter.setRunner(it.runnerId!!)
+                            adapter.setRunner(game.runnerId!!)
+                            if (game.status == GameStatuses.PLAYING) {
+                                startGameActivity()
+                            }
                         }
                     }
                 }
@@ -105,8 +109,10 @@ class LobbyActivity : AppCompatActivity() {
             }
 
             startButton.setOnClickListener {
-                val intent = Intent(baseContext, GameActivity::class.java)
-                startActivity(intent)
+                CoroutineScope(Dispatchers.IO).launch {
+                    gameDao.setGameStatus(gameId, GameStatuses.PLAYING)
+                    startGameActivity()
+                }
             }
             getPlayers()
         }
@@ -147,5 +153,10 @@ class LobbyActivity : AppCompatActivity() {
             }
             adapter.notifyDataSetChanged()
         }
+    }
+
+    private fun startGameActivity() {
+        val intent = Intent(baseContext, GameActivity::class.java)
+        startActivity(intent)
     }
 }

@@ -24,6 +24,7 @@ import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dto.Game
+import com.huikka.supertag.data.helpers.GameStatuses
 import com.huikka.supertag.ui.login.LoginActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +97,12 @@ class MainActivity : AppCompatActivity() {
                 playerId = authDao.getUser()!!.id
                 val currentGame = gameDao.getCurrentGameInfo(playerId)
                 if (currentGame.gameId != null) {
-                    startLobbyActivity()
+                    val gameStatus = gameDao.getGameStatus(currentGame.gameId)
+                    if (gameStatus == GameStatuses.PLAYING) {
+                        startGameActivity()
+                    } else if (gameStatus == GameStatuses.LOBBY) {
+                        startLobbyActivity()
+                    }
                 }
             }
             loading.visibility = View.GONE
@@ -250,10 +256,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun startLobbyActivity() {
         val intent = Intent(this, LobbyActivity::class.java)
-        CoroutineScope(Dispatchers.Main).launch {
-            startActivity(intent)
-            gameIdEditText.text.clear()
-            gameIdEditText.clearFocus()
-        }
+        startActivity(intent)
+    }
+
+    private fun startGameActivity() {
+        val intent = Intent(this, GameActivity::class.java)
+        startActivity(intent)
     }
 }

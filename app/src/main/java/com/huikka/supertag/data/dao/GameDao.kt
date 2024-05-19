@@ -4,6 +4,7 @@ import android.util.Log
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.CurrentGame
 import com.huikka.supertag.data.dto.Game
+import com.huikka.supertag.data.dto.GameStatus
 import com.huikka.supertag.data.dto.RunnerId
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
@@ -22,6 +23,14 @@ class GameDao(application: STApplication) {
                 eq("id", id)
             }
         }.decodeSingle<Game>()
+    }
+
+    suspend fun getGameStatus(id: String): String {
+        return db.from("games").select(columns = Columns.list("status")) {
+            filter {
+                eq("id", id)
+            }
+        }.decodeSingle<GameStatus>().status
     }
 
     suspend fun checkGameExists(id: String): Boolean {
@@ -58,6 +67,21 @@ class GameDao(application: STApplication) {
             Log.d("getRunnerId", e.toString())
             null
         }
+    }
+
+    suspend fun setGameStatus(gameId: String, status: String): Error? {
+        try {
+            db.from("games").update({
+                set("status", status)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
     }
 
     @OptIn(SupabaseExperimental::class)
