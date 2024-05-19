@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_margin="4dp"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/custom_item_icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="TimerIcon"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/cards" />
+
+        <Chronometer
+            android:id="@+id/custom_item_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:countDown="true" />
+
+    </LinearLayout>
+
+</merge>

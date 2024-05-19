@@ -1,6 +1,7 @@
 package com.huikka.supertag
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Bundle
@@ -103,6 +104,10 @@ class LobbyActivity : AppCompatActivity() {
                 }
             }
 
+            startButton.setOnClickListener {
+                val intent = Intent(baseContext, GameActivity::class.java)
+                startActivity(intent)
+            }
             getPlayers()
         }
 
@@ -118,6 +123,8 @@ class LobbyActivity : AppCompatActivity() {
             locationManager.requestLocationUpdates(
                 LocationManager.GPS_PROVIDER, 5000, 10f, locationListener
             )
+
+
         }
     }
 
