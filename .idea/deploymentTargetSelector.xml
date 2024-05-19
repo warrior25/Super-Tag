@@ -3,15 +3,33 @@
   <component name="deploymentTargetSelector">
     <selectionStates>
       <SelectionState runConfigName="app">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-05-18T17:52:20.503837520Z">
+        <option name="selectionMode" value="DIALOG" />
+        <DropdownSelection timestamp="2024-05-19T18:20:34.009398500Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=efb73486" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_7_API_34.avd" />
             </handle>
           </Target>
         </DropdownSelection>
-        <DialogSelection />
+        <DialogSelection>
+          <targets>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_3a_API_34_extension_level_7_x86_64.avd" />
+              </handle>
+            </Target>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_7_API_34.avd" />
+              </handle>
+            </Target>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="Default" identifier="serial=192.168.1.13:39689;connection=03168858" />
+              </handle>
+            </Target>
+          </targets>
+        </DialogSelection>
       </SelectionState>
     </selectionStates>
   </component>

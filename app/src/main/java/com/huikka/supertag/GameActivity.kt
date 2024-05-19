@@ -13,11 +13,16 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.huikka.supertag.data.dao.AuthDao
+import com.huikka.supertag.data.dao.GameDao
+import com.huikka.supertag.data.dao.PlayerDao
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.ClickableIconOverlay
 import org.osmdroid.views.overlay.CopyrightOverlay
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.DirectedLocationOverlay
@@ -27,6 +32,16 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 class GameActivity : AppCompatActivity() {
     private lateinit var map: MapView
+    private lateinit var playerId: String
+    private lateinit var gameId: String
+    private var isRunner = false
+    private lateinit var runnerId: String
+    private var chasers: MutableMap<String, DirectedLocationOverlay> = mutableMapOf()
+
+    private lateinit var authDao: AuthDao
+    private lateinit var gameDao: GameDao
+    private lateinit var playerDao: PlayerDao
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -35,6 +50,11 @@ class GameActivity : AppCompatActivity() {
         // HTTP User-Agent variable to not ban other users
         getInstance().userAgentValue = applicationContext.packageName
         setContentView(R.layout.activity_game)
+
+        val app = application as STApplication
+        authDao = AuthDao(app)
+        gameDao = GameDao(app)
+        playerDao = PlayerDao(app)
 
         val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
         cardsButton.setOnClickListener {
@@ -60,19 +80,29 @@ class GameActivity : AppCompatActivity() {
 
         val mapController = map.controller
         val startPoint = GeoPoint(61.4498, 23.8595)
-        mapController.setCenter(startPoint);
+        mapController.setCenter(startPoint)
         mapController.setZoom(15.0)
-
-        // draw items on map
-        drawUserOnMap()
-        drawPlayersOnMap()
-        drawATMsV1()
-        drawATMsV2()
-
 
         // Mandatory copy-right mention
         val cr = CopyrightOverlay(this)
         map.overlays.add(cr)
+
+        CoroutineScope(Dispatchers.Main).launch {
+            playerId = authDao.getUser()!!.id
+            gameId = gameDao.getCurrentGameInfo(playerId).gameId!!
+            runnerId = gameDao.getRunnerId(gameId)!!
+            isRunner = playerId == runnerId
+
+            if (isRunner) {
+                // TODO: Show runner UI
+            } else {
+                updateChasersOnMap()
+            }
+        }
+
+        drawUserOnMap()
+        drawATMsV1()
+        drawATMsV2()
     }
 
     override fun onResume() {
@@ -101,38 +131,58 @@ class GameActivity : AppCompatActivity() {
         map.overlays.add(myLocationOverlay)
     }
 
-    private fun drawPlayersOnMap() {
+    private suspend fun updateChasersOnMap() {
+        val flow = playerDao.getPlayersByGameIdFlow(gameId)
+        flow.collect {
+            for (player in it) {
+                if (player.id == runnerId || player.id == playerId) {
+                    continue
+                }
+                if (chasers[player.id] == null) {
+                    chasers[player.id] =
+                        drawPlayerOnMap(player.latitude!!, player.longitude!!, Color.RED)
+                }
+                chasers[player.id]?.location = GeoPoint(player.latitude!!, player.longitude!!)
+            }
+
+            // Force refresh map
+            // https://stackoverflow.com/a/72153233
+            map.controller.setCenter(map.mapCenter);
+        }
+    }
+
+    private fun drawPlayerOnMap(
+        latitude: Double, longitude: Double, color: Int
+    ): DirectedLocationOverlay {
         val conf = Bitmap.Config.ARGB_8888
         val bmp = Bitmap.createBitmap(100, 100, conf)
         val canvas1 = Canvas(bmp)
 
         // paint defines the text color, stroke width and size
-        val color = Paint()
-        color.textSize = 35f
-        color.color = Color.WHITE
+        val paint = Paint()
+        paint.textSize = 35f
+        paint.color = color
 
         // draw background color for bitmap
-        canvas1.drawCircle(50f, 50f, 50f, color)
+        canvas1.drawCircle(50f, 50f, 50f, paint)
 
         // modify canvas
         canvas1.drawBitmap(
             BitmapFactory.decodeResource(
                 resources, R.drawable.agent
-            ), 15f, 15f, color
+            ), 15f, 15f, paint
         )
 
-
         // Add player to map
-        val playerLocation = GeoPoint(61.4478, 23.8620)
+        val playerLocation = GeoPoint(latitude, longitude)
         val playerOverlay = DirectedLocationOverlay(this)
         playerOverlay.location = playerLocation
         playerOverlay.setDirectionArrow(bmp)
 
         map.overlays.add(playerOverlay)
-
-        //TODO("Get players from database")
+        return playerOverlay
     }
-    
+
 
     private fun drawATMsV1() {
         val ATMLocation = GeoPoint(61.4498, 23.8595)
