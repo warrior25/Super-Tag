@@ -7,17 +7,16 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.widget.Button
 import android.widget.ImageButton
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.huikka.supertag.data.dto.Card
 import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.ClickableIconOverlay
 import org.osmdroid.views.overlay.CopyrightOverlay
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.DirectedLocationOverlay
@@ -27,6 +26,9 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 class GameActivity : AppCompatActivity() {
     private lateinit var map: MapView
+
+    private var cards: ArrayList<Card> = ArrayList()
+    private lateinit var adapter: CardListAdapter
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -36,17 +38,20 @@ class GameActivity : AppCompatActivity() {
         getInstance().userAgentValue = applicationContext.packageName
         setContentView(R.layout.activity_game)
 
+        val view = LayoutInflater.from(this).inflate(R.layout.cards_sheet_layout, null)
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerview)
+        adapter = CardListAdapter(cards)
+        recyclerView.adapter = adapter
+
         val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
         cardsButton.setOnClickListener {
             val bottomSheetDialog = BottomSheetDialog(this)
-            val view = LayoutInflater.from(this).inflate(R.layout.cards_sheet_layout, null)
             bottomSheetDialog.setContentView(view)
             bottomSheetDialog.show()
 
-            val buttonOne = view.findViewById<Button>(R.id.firstButton)
-            buttonOne.setOnClickListener {
-                Toast.makeText(this, "First button clicked", Toast.LENGTH_SHORT).show()
-            }
+            cards.add(Card("Card 1", "Test Card", 100, R.drawable.cards))
+            cards.add(Card("Card 2", "Second Card", 200, R.drawable.cards))
+
         }
 
         // map initialization
@@ -132,7 +137,7 @@ class GameActivity : AppCompatActivity() {
 
         //TODO("Get players from database")
     }
-    
+
 
     private fun drawATMsV1() {
         val ATMLocation = GeoPoint(61.4498, 23.8595)
