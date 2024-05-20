@@ -27,6 +27,8 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 class GameActivity : AppCompatActivity() {
     private lateinit var map: MapView
 
+    private lateinit var myLocationOverlay: MyLocationNewOverlay
+
     private var cards: ArrayList<Card> = ArrayList()
     private lateinit var adapter: CardListAdapter
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +44,12 @@ class GameActivity : AppCompatActivity() {
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerview)
         adapter = CardListAdapter(cards)
         recyclerView.adapter = adapter
+
+        val locationButton = findViewById<ImageButton>(R.id.locationButton)
+        locationButton.setOnClickListener {
+            myLocationOverlay.enableFollowLocation()
+
+        }
 
         val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
         cardsButton.setOnClickListener {
@@ -99,7 +107,7 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun drawUserOnMap() {
-        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), this.map)
+        myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), this.map)
         myLocationOverlay.enableMyLocation()
         myLocationOverlay.enableFollowLocation()
         myLocationOverlay.isDrawAccuracyEnabled = true
