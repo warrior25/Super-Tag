@@ -7,6 +7,8 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
@@ -17,7 +19,6 @@ import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.ClickableIconOverlay
 import org.osmdroid.views.overlay.CopyrightOverlay
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.DirectedLocationOverlay
@@ -48,6 +49,8 @@ class GameActivity : AppCompatActivity() {
                 Toast.makeText(this, "First button clicked", Toast.LENGTH_SHORT).show()
             }
         }
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
         // map initialization
         map = findViewById(R.id.map)
@@ -73,6 +76,22 @@ class GameActivity : AppCompatActivity() {
         // Mandatory copy-right mention
         val cr = CopyrightOverlay(this)
         map.overlays.add(cr)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.game_toolbar_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val id: Int = item.itemId
+        if (id == R.id.info) {
+            Toast.makeText(this, "Info", Toast.LENGTH_SHORT).show()
+        }
+        if (id == R.id.leave_game) {
+            Toast.makeText(this, "Leave", Toast.LENGTH_SHORT).show()
+        }
+        return true
     }
 
     override fun onResume() {
@@ -132,7 +151,7 @@ class GameActivity : AppCompatActivity() {
 
         //TODO("Get players from database")
     }
-    
+
 
     private fun drawATMsV1() {
         val ATMLocation = GeoPoint(61.4498, 23.8595)
