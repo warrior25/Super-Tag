@@ -6,14 +6,14 @@
         android:id="@+id/pick_random"
         android:icon="@drawable/dice"
         android:title="@string/pick_random"
-        android:visibility="gone"
+        android:visible="false"
         app:showAsAction="ifRoom" />
 
     <item
         android:title="@string/settings"
         android:icon="@drawable/settings"
         android:id="@+id/settings"
-        android:visibility="gone"
+        android:visible="false"
         app:showAsAction="ifRoom" />
 
     <item
