@@ -5,6 +5,7 @@ import com.huikka.supertag.data.dto.Player
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.filter.FilterOperation
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.selectAsFlow
@@ -77,24 +78,21 @@ class PlayerDao(application: STApplication) {
         return null
     }
 
-    suspend fun setZoneId(playerId: String, zoneId: Int?): Error? {
-        try {
-            db.from("players").update({ set("zone_id", zoneId) }) {
-                filter {
-                    eq("id", playerId)
-                }
-            }
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
-    }
-
     suspend fun getPlayerById(id: String): Player? {
         return db.from("players").select {
             filter {
                 eq("id", id)
             }
         }.decodeSingleOrNull<Player>()
+    }
+
+    suspend fun getPlayerLocation(id: String): Player {
+        return db.from("players").select(
+            columns = (Columns.list(
+                "latitude", "longitude", "location_accuracy", "speed", "bearing"
+            ))
+        ) {
+            filter { eq("id", id) }
+        }.decodeSingle<Player>()
     }
 }

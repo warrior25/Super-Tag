@@ -1,23 +1,32 @@
 package com.huikka.supertag
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
+import com.huikka.supertag.data.helpers.TimeConverter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -37,6 +46,18 @@ class GameActivity : AppCompatActivity() {
     private var isRunner = false
     private lateinit var runnerId: String
     private var chasers: MutableMap<String, DirectedLocationOverlay> = mutableMapOf()
+    private lateinit var runner: DirectedLocationOverlay
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    private var minute = 60000L
+
+    // TODO: Set dynamically (e.g based on difficulty)
+    private var locationUpdateInterval = 10 * minute
+    private var minLocationUpdateInterval = minute
+
+    private lateinit var locationManager: LocationManager
+    private lateinit var locationListener: PlayerLocationListener
 
     private lateinit var authDao: AuthDao
     private lateinit var gameDao: GameDao
@@ -93,10 +114,26 @@ class GameActivity : AppCompatActivity() {
             runnerId = gameDao.getRunnerId(gameId)!!
             isRunner = playerId == runnerId
 
+            locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+            locationListener = PlayerLocationListener(app, playerId)
+            if (ActivityCompat.checkSelfPermission(
+                    this@GameActivity, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                    this@GameActivity, Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                locationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER, 5000, 10f, locationListener
+                )
+            }
+
             if (isRunner) {
                 // TODO: Show runner UI
             } else {
-                updateChasersOnMap()
+                CoroutineScope(Dispatchers.Main).launch {
+                    updateChasersOnMap()
+                }
+                handler.postDelayed(updateRunnable, getHeadStart())
             }
         }
 
@@ -139,20 +176,51 @@ class GameActivity : AppCompatActivity() {
                     continue
                 }
                 if (chasers[player.id] == null) {
-                    chasers[player.id] =
-                        drawPlayerOnMap(player.latitude!!, player.longitude!!, Color.RED)
+                    chasers[player.id!!] = drawPlayerOnMap(
+                        player.latitude!!, player.longitude!!, Color.RED, R.drawable.agent
+                    )
                 }
                 chasers[player.id]?.location = GeoPoint(player.latitude!!, player.longitude!!)
             }
 
             // Force refresh map
             // https://stackoverflow.com/a/72153233
-            map.controller.setCenter(map.mapCenter);
+            map.controller.setCenter(map.mapCenter)
         }
     }
 
+    private suspend fun getHeadStart(): Long {
+        return gameDao.getHeadStart(gameId)!! * minute
+    }
+
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            val oldUpdateInterval = locationUpdateInterval
+            CoroutineScope(Dispatchers.Main).launch {
+                val nextUpdateTime =
+                    TimeConverter.longToTimestamp(System.currentTimeMillis() + oldUpdateInterval)
+                gameDao.setNextLocationUpdate(gameId, nextUpdateTime)
+                updateRunnerOnMap()
+            }
+            handler.postDelayed(this, oldUpdateInterval)
+            locationUpdateInterval =
+                (locationUpdateInterval - minute).coerceAtLeast(minLocationUpdateInterval)
+        }
+    }
+
+    private suspend fun updateRunnerOnMap() {
+        val loc = playerDao.getPlayerLocation(runnerId)
+        if (!::runner.isInitialized) {
+            runner = drawPlayerOnMap(loc.latitude!!, loc.longitude!!, Color.GREEN, R.drawable.agent)
+            return
+        }
+        runner.location = GeoPoint(loc.latitude!!, loc.longitude!!)
+        map.controller.setCenter(map.mapCenter)
+        Log.d("RUNNER", "runner location updated")
+    }
+
     private fun drawPlayerOnMap(
-        latitude: Double, longitude: Double, color: Int
+        latitude: Double, longitude: Double, color: Int, icon: Int
     ): DirectedLocationOverlay {
         val conf = Bitmap.Config.ARGB_8888
         val bmp = Bitmap.createBitmap(100, 100, conf)
@@ -169,7 +237,7 @@ class GameActivity : AppCompatActivity() {
         // modify canvas
         canvas1.drawBitmap(
             BitmapFactory.decodeResource(
-                resources, R.drawable.agent
+                resources, icon
             ), 15f, 15f, paint
         )
 

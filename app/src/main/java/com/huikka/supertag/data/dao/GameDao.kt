@@ -17,14 +17,6 @@ class GameDao(application: STApplication) {
 
     private val db: Postgrest = application.supabase.postgrest
 
-    private suspend fun getGameById(id: String): Game {
-        return db.from("games").select {
-            filter {
-                eq("id", id)
-            }
-        }.decodeSingle<Game>()
-    }
-
     suspend fun getGameStatus(id: String): String {
         return db.from("games").select(columns = Columns.list("status")) {
             filter {
@@ -132,5 +124,51 @@ class GameDao(application: STApplication) {
                 eq("id", userId)
             }
         }.decodeSingle<CurrentGame>()
+    }
+
+    suspend fun getNextLocationUpdate(gameId: String): String? {
+        return db.from("games").select(columns = Columns.list("next_runner_location_update")) {
+            filter {
+                eq("id", gameId)
+            }
+        }.decodeSingle<Game>().nextRunnerLocationUpdate
+    }
+
+    suspend fun setNextLocationUpdate(gameId: String, nextLocationUpdate: String): Error? {
+        try {
+            db.from("games").update({
+                set("next_runner_location_update", nextLocationUpdate)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
+    }
+
+    suspend fun setHeadStart(gameId: String, headStart: Int): Error? {
+        return try {
+            db.from("games").update({
+                set("head_start", headStart)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Error(e)
+        }
+    }
+
+    suspend fun getHeadStart(gameId: String): Int? {
+        return db.from("games").select(columns = Columns.list("head_start")) {
+            filter {
+                eq("id", gameId)
+            }
+        }.decodeSingle<Game>().headStart
     }
 }

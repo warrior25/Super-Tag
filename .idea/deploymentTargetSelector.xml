@@ -4,15 +4,20 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DIALOG" />
-        <DropdownSelection timestamp="2024-05-19T18:20:34.009398500Z">
+        <DropdownSelection timestamp="2024-05-19T19:56:47.758280400Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_7_API_34.avd" />
+              <DeviceId pluginId="Default" identifier="serial=192.168.1.13:39689;connection=03168858" />
             </handle>
           </Target>
         </DropdownSelection>
         <DialogSelection>
           <targets>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="Default" identifier="serial=192.168.1.13:39353;connection=95250615" />
+              </handle>
+            </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
                 <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_3a_API_34_extension_level_7_x86_64.avd" />
@@ -21,11 +26,6 @@
             <Target type="DEFAULT_BOOT">
               <handle>
                 <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_7_API_34.avd" />
-              </handle>
-            </Target>
-            <Target type="DEFAULT_BOOT">
-              <handle>
-                <DeviceId pluginId="Default" identifier="serial=192.168.1.13:39689;connection=03168858" />
               </handle>
             </Target>
           </targets>

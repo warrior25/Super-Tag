@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Game(
 
-    @SerialName("id") val id: String,
-    @SerialName("status") val status: String,
+    @SerialName("id") val id: String? = null,
+    @SerialName("status") val status: String? = null,
     @SerialName("runner_id") val runnerId: String? = null,
     @SerialName("runner_money") val runnerMoney: Int? = null,
     @SerialName("chaser_money") val chaserMoney: Int? = null,
