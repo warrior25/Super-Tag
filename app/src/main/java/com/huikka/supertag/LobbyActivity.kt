@@ -131,6 +131,8 @@ class LobbyActivity : AppCompatActivity() {
         val id: Int = item.itemId
         if (id == R.id.settings) {
             Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show()
+            val intent = Intent(baseContext, SettingsActivity::class.java)
+            startActivity(intent)
         }
         if (id == R.id.pick_random) {
             Toast.makeText(this, "Pick Random", Toast.LENGTH_SHORT).show()

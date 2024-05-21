@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".SettingsActivity">
+
+    <com.huikka.supertag.CustomSlider
+        android:id="@+id/chaserCoins"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:customName="Chaser Coins"
+        app:customStepSize="10"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/runnerCoins"
+        app:layout_constraintTop_toTopOf="@+id/runnerCoins" />
+
+    <com.huikka.supertag.CustomSlider
+        android:id="@+id/runnerCoins"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:customName="Runner Coins"
+        app:customStepSize="10"
+        app:layout_constraintEnd_toStartOf="@+id/chaserCoins"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/head_start" />
+
+    <com.huikka.supertag.CustomSlider
+        android:id="@+id/playzone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:customName="Playzone size"
+        app:customValueFrom="100"
+        app:customValueTo="3000"
+        app:customValue="1000"
+        app:customStepSize="100"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.huikka.supertag.CustomSlider
+        android:id="@+id/head_start"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:customName="Head start"
+        app:customValue="10"
+        app:customValueTo="30"
+        app:layout_constraintTop_toBottomOf="@+id/playzone"
+        tools:layout_editor_absoluteX="1dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

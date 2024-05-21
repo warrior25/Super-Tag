@@ -5,4 +5,12 @@
         <attr name="customTime" format="integer" />
         <attr name="customIcon" format="reference" />
     </declare-styleable>
+
+    <declare-styleable name="CustomSlider">
+        <attr name="customValue" format="float" />
+        <attr name="customValueFrom" format="float" />
+        <attr name="customValueTo" format="float" />
+        <attr name="customStepSize" format="float" />
+        <attr name="customName" format="string" />
+    </declare-styleable>
 </resources>
