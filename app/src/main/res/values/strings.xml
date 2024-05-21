@@ -36,4 +36,6 @@
     <string name="gameInfoButton">button_to_show_game_info</string>
     <string name="cardsButton">button_to_show_cards</string>
     <string name="info">Info</string>
+    <string name="pick_random">Pick random runner</string>
+    <string name="settings">Settings</string>
 </resources>

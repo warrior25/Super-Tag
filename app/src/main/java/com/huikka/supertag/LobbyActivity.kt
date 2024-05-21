@@ -6,9 +6,12 @@ import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -55,10 +58,10 @@ class LobbyActivity : AppCompatActivity() {
         gameDao = GameDao(app)
         playerDao = PlayerDao(app)
 
-        val randomButton = findViewById<Button>(R.id.pick_random)
-        val startButton = findViewById<Button>(R.id.startButton)
-        val leaveButton = findViewById<Button>(R.id.leaveButton)
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
+        val startButton = findViewById<Button>(R.id.startButton)
         playerId = authDao.getUser()!!.id
 
         CoroutineScope(Dispatchers.Main).launch {
@@ -74,18 +77,16 @@ class LobbyActivity : AppCompatActivity() {
             recyclerView.adapter = adapter
 
             if (isHost) {
-                randomButton.visibility = View.VISIBLE
                 startButton.visibility = View.VISIBLE
                 if (gameDao.getRunnerId(gameId) == null) {
                     gameDao.setRunnerId(gameId, playerId)
-                }
-                randomButton.setOnClickListener {
-                    adapter.selectRandom()
                 }
                 startButton.setOnClickListener {
                     val runner = adapter.getRunner()
                     Log.d("TAG", runner.toString())
                 }
+                toolbar.menu.findItem(R.id.pick_random).isVisible = true
+                toolbar.menu.findItem(R.id.settings).isVisible = true
             } else {
                 CoroutineScope(Dispatchers.IO).launch {
                     val flow = gameDao.getGameFlow(gameId)
@@ -94,13 +95,6 @@ class LobbyActivity : AppCompatActivity() {
                             adapter.setRunner(it.runnerId!!)
                         }
                     }
-                }
-            }
-
-
-            leaveButton.setOnClickListener {
-                lifecycleScope.launch {
-                    leaveGame()
                 }
             }
 
@@ -126,6 +120,29 @@ class LobbyActivity : AppCompatActivity() {
 
 
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.lobby_toolbar_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val id: Int = item.itemId
+        if (id == R.id.settings) {
+            Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show()
+        }
+        if (id == R.id.pick_random) {
+            Toast.makeText(this, "Pick Random", Toast.LENGTH_SHORT).show()
+            adapter.selectRandom()
+        }
+        if (id == R.id.leave_game) {
+            Toast.makeText(this, "Leave", Toast.LENGTH_SHORT).show()
+            lifecycleScope.launch {
+                leaveGame()
+            }
+        }
+        return true
     }
 
     private suspend fun leaveGame() {
