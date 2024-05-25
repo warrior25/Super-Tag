@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -141,7 +142,7 @@ class MainActivity : AppCompatActivity() {
                 // decision.
                 locationPermissionFailed = true
                 locationPermissionDenied()
-            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestBackgroundLocation.launch(
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 )
@@ -160,11 +161,19 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ), 0
+            )
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (ActivityCompat.checkSelfPermission(
                     this, Manifest.permission.ACCESS_FINE_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED

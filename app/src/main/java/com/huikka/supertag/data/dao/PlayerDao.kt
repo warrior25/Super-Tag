@@ -1,5 +1,6 @@
 package com.huikka.supertag.data.dao
 
+import android.util.Log
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.Player
 import io.github.jan.supabase.annotations.SupabaseExperimental
@@ -10,6 +11,7 @@ import io.github.jan.supabase.postgrest.query.filter.FilterOperation
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.selectAsFlow
 import kotlinx.coroutines.flow.Flow
+import java.sql.SQLException
 
 class PlayerDao(application: STApplication) {
     private val db: Postgrest = application.supabase.postgrest
@@ -30,7 +32,7 @@ class PlayerDao(application: STApplication) {
         bearing: Float,
         zoneId: Int?
     ): Error? {
-        try {
+        return try {
             db.from("players").update({
                 set("latitude", latitude)
                 set("longitude", longitude)
@@ -43,10 +45,14 @@ class PlayerDao(application: STApplication) {
                     eq("id", id)
                 }
             }
+            null
+        } catch (e: SQLException) {
+            Log.e("LOCATION", "SQL error updating player location for $id: ${e.message}", e)
+            Error(e)
         } catch (e: Exception) {
-            return Error(e)
+            Log.d("LOCATION", "Error updating player location for $id: $e")
+            Error(e)
         }
-        return null
     }
 
     suspend fun addToGame(playerId: String, gameId: String, isHost: Boolean = false): Error? {
