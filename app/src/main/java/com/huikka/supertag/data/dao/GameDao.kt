@@ -134,4 +134,12 @@ class GameDao(application: STApplication) {
             }
         }.decodeSingle<Game>().headStart
     }
+
+    suspend fun getInitialTrackingInterval(gameId: String): Int? {
+        return db.from("games").select(columns = Columns.list("initial_tracking_interval")) {
+            filter {
+                eq("id", gameId)
+            }
+        }.decodeSingle<Game>().initialTrackingInterval
+    }
 }

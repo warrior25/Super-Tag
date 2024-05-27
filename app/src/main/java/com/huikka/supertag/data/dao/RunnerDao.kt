@@ -50,6 +50,14 @@ class RunnerDao(application: STApplication) {
         }
     }
 
+    suspend fun getLastUpdateTime(gameId: String): String? {
+        return db.from("runners").select(columns = Columns.list("last_update")) {
+            filter {
+                eq("game_id", gameId)
+            }
+        }.decodeSingle<Runner>().lastUpdate
+    }
+
     @OptIn(SupabaseExperimental::class)
     fun getRunnerFlow(gameId: String): Flow<Runner> {
         return db.from("runners").selectSingleValueAsFlow(PrimaryKey("game_id") { it.gameId!! }) {

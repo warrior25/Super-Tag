@@ -111,7 +111,7 @@ class GameActivity : AppCompatActivity() {
                 Log.d("RUNNER", "is runner")
                 val nextUpdate = runnerDao.getNextUpdateTime(gameId)
                 if (nextUpdate == null) {
-                    setHeadStart()
+                    applyHeadStart()
                 }
                 scheduleRunnerLocationUpdates()
             } else {
@@ -186,13 +186,9 @@ class GameActivity : AppCompatActivity() {
                 runner = drawPlayerOnMap(
                     it.latitude, it.longitude, Color.GREEN, R.drawable.agent
                 )
-                Log.d("RUNNER", "runner initialized on map at: ${it.latitude}, ${it.longitude}")
             } else {
                 runner.location = GeoPoint(it.latitude, it.longitude)
                 map.invalidate()
-                Log.d(
-                    "RUNNER", "runner location updated on map to: ${it.latitude}, ${it.longitude}"
-                )
             }
         }
     }
@@ -229,7 +225,7 @@ class GameActivity : AppCompatActivity() {
         return playerOverlay
     }
 
-    private suspend fun setHeadStart() {
+    private suspend fun applyHeadStart() {
         val headStart = System.currentTimeMillis() + gameDao.getHeadStart(gameId)!! * minute
         val timestamp = TimeConverter.longToTimestamp(headStart)
         runnerDao.setNextUpdateTime(gameId, timestamp)
@@ -240,7 +236,16 @@ class GameActivity : AppCompatActivity() {
         val updateDelay = calculateDelay(nextUpdate)
         Log.d("RUNNER", "Updating runner location next time at $nextUpdate")
         delay(updateDelay)
-        val timestamp = calculateNextUpdateTimestamp(updateDelay)
+
+        val timestamp: String
+        if (runnerDao.getLastUpdateTime(gameId) == null) {
+            // First update after head start
+            val initialDelay = gameDao.getInitialTrackingInterval(gameId)!! * minute
+            // Counter decrementing first interval by adding 1 minute
+            timestamp = calculateNextUpdateTimestamp(initialDelay + minute)
+        } else {
+            timestamp = calculateNextUpdateTimestamp(updateDelay)
+        }
         updateRunnerLocation(timestamp)
         scheduleRunnerLocationUpdates()
     }

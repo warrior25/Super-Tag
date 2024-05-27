@@ -67,8 +67,6 @@ class LocationUpdateService : Service(), LocationListener {
             )
             if (error != null) {
                 Log.e("LOCATION", "Failed to update location: ${error.message}")
-            } else {
-                Log.d("LOCATION", "Location updated successfully.")
             }
         }
     }
