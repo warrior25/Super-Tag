@@ -21,6 +21,7 @@ import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.helpers.TimeConverter
+import com.huikka.supertag.fragments.ChaserTimers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,6 +52,8 @@ class GameActivity : AppCompatActivity() {
     private lateinit var playerDao: PlayerDao
     private lateinit var runnerDao: RunnerDao
 
+    private lateinit var timers: ChaserTimers
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -79,6 +82,8 @@ class GameActivity : AppCompatActivity() {
             }
         }
 
+        timers = supportFragmentManager.findFragmentById(R.id.timers) as ChaserTimers
+
         // map initialization
         map = findViewById(R.id.map)
         map.setTileSource(TileSourceFactory.MAPNIK)
@@ -97,14 +102,14 @@ class GameActivity : AppCompatActivity() {
         val cr = CopyrightOverlay(this)
         map.overlays.add(cr)
 
-        val intent = Intent(applicationContext, LocationUpdateService::class.java)
-        startForegroundService(intent)
-
         lifecycleScope.launch(Dispatchers.IO) {
             playerId = authDao.getUser()!!.id
             gameId = gameDao.getCurrentGameInfo(playerId).gameId!!
             runnerId = gameDao.getRunnerId(gameId)!!
             isRunner = playerId == runnerId
+
+            val intent = Intent(applicationContext, LocationUpdateService::class.java)
+            startForegroundService(intent)
 
             if (isRunner) {
                 // TODO: Show runner UI
@@ -159,7 +164,6 @@ class GameActivity : AppCompatActivity() {
     private suspend fun updateChasersOnMap() {
         val flow = playerDao.getPlayersByGameIdFlow(gameId)
         flow.collect {
-            Log.d("CHASER", "Updating chasers on map")
             for (player in it) {
                 if (player.id == runnerId || player.id == playerId) {
                     continue
@@ -178,6 +182,9 @@ class GameActivity : AppCompatActivity() {
     private suspend fun updateRunnerOnMap() {
         val flow = runnerDao.getRunnerFlow(gameId)
         flow.collect {
+            val updateDelay = calculateDelay(it.nextUpdate!!)
+            startTimer(timers.runnerLocationTimer, updateDelay)
+
             if (it.latitude == null || it.longitude == null) {
                 // Runner location is not set on initial collect
                 return@collect
@@ -234,7 +241,6 @@ class GameActivity : AppCompatActivity() {
     private suspend fun scheduleRunnerLocationUpdates() {
         val nextUpdate = runnerDao.getNextUpdateTime(gameId)!!
         val updateDelay = calculateDelay(nextUpdate)
-        Log.d("RUNNER", "Updating runner location next time at $nextUpdate")
         delay(updateDelay)
 
         val timestamp: String
@@ -289,5 +295,11 @@ class GameActivity : AppCompatActivity() {
 
     }
 
+    private fun startTimer(timer: CustomTimer, time: Long) {
+        lifecycleScope.launch(Dispatchers.Main) {
+            timer.setTime(time)
+            timer.startTimer()
+        }
+    }
 
 }

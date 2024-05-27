@@ -38,8 +38,10 @@ class LocationUpdateService : Service(), LocationListener {
         playerDao = PlayerDao(app)
         zoneManager = ZoneManager(app)
         val authDao = AuthDao(app)
-        playerId = authDao.getUser()!!.id
-
+        CoroutineScope(Dispatchers.IO).launch {
+            authDao.awaitCurrentSession()
+            playerId = authDao.getUser()!!.id
+        }
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         startForeground(1, createNotification())
     }
