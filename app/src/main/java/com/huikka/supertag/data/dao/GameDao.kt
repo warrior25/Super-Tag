@@ -5,7 +5,6 @@ import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.CurrentGame
 import com.huikka.supertag.data.dto.Game
 import com.huikka.supertag.data.dto.GameStatus
-import com.huikka.supertag.data.dto.RunnerId
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
@@ -54,7 +53,7 @@ class GameDao(application: STApplication) {
                 filter {
                     eq("id", gameId)
                 }
-            }.decodeSingle<RunnerId>().runnerId
+            }.decodeSingle<Game>().runnerId
         } catch (e: Exception) {
             Log.d("getRunnerId", e.toString())
             null
@@ -85,20 +84,7 @@ class GameDao(application: STApplication) {
 
     suspend fun createGame(game: Game): Error? {
         try {
-            val gameDto = Game(
-                id = game.id,
-                status = game.status,
-                runnerId = game.runnerId,
-                runnerMoney = game.runnerMoney,
-                chaserMoney = game.chaserMoney,
-                robberyInProgress = game.robberyInProgress,
-                startTime = game.startTime,
-                endTime = game.endTime,
-                headStart = game.headStart,
-                nextRunnerLocationUpdate = game.nextRunnerLocationUpdate,
-                lastRunnerLocationUpdate = game.lastRunnerLocationUpdate
-            )
-            db.from("games").insert(gameDto)
+            db.from("games").insert(game)
         } catch (e: Exception) {
             return Error(e)
         }
@@ -124,29 +110,6 @@ class GameDao(application: STApplication) {
                 eq("id", userId)
             }
         }.decodeSingle<CurrentGame>()
-    }
-
-    suspend fun getNextLocationUpdate(gameId: String): String? {
-        return db.from("games").select(columns = Columns.list("next_runner_location_update")) {
-            filter {
-                eq("id", gameId)
-            }
-        }.decodeSingle<Game>().nextRunnerLocationUpdate
-    }
-
-    suspend fun setNextLocationUpdate(gameId: String, nextLocationUpdate: String): Error? {
-        try {
-            db.from("games").update({
-                set("next_runner_location_update", nextLocationUpdate)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
-            }
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
     }
 
     suspend fun setHeadStart(gameId: String, headStart: Int): Error? {

@@ -14,7 +14,5 @@ data class Game(
     @SerialName("robbery_in_progress") val robberyInProgress: Boolean? = null,
     @SerialName("start_time") val startTime: String? = null,
     @SerialName("end_time") val endTime: String? = null,
-    @SerialName("head_start") val headStart: Int? = null,
-    @SerialName("next_runner_location_update") val nextRunnerLocationUpdate: String? = null,
-    @SerialName("last_runner_location_update") val lastRunnerLocationUpdate: String? = null
+    @SerialName("head_start") val headStart: Int? = null
 )

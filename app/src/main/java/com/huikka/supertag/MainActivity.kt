@@ -24,6 +24,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
+import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dto.Game
 import com.huikka.supertag.data.helpers.GameStatuses
 import com.huikka.supertag.ui.login.LoginActivity
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var gameDao: GameDao
     private lateinit var authDao: AuthDao
     private lateinit var playerDao: PlayerDao
+    private lateinit var runnerDao: RunnerDao
 
     private lateinit var playerId: String
 
@@ -60,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         authDao = AuthDao(app)
         gameDao = GameDao(app)
         playerDao = PlayerDao(app)
+        runnerDao = RunnerDao(app)
 
         // Setup button actions
         joinGameButton = findViewById(R.id.joinGameButton)
@@ -242,6 +245,8 @@ class MainActivity : AppCompatActivity() {
             Log.e("HOST", "Failed to host game: $err")
             return
         }
+
+        runnerDao.addGame(gameId)
 
         startLobbyActivity()
     }

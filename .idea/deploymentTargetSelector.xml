@@ -3,11 +3,11 @@
   <component name="deploymentTargetSelector">
     <selectionStates>
       <SelectionState runConfigName="app">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-05-21T14:40:38.982029Z">
+        <option name="selectionMode" value="DIALOG" />
+        <DropdownSelection timestamp="2024-05-27T14:26:18.819778800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_8_Pro_API_34.avd" />
+              <DeviceId pluginId="Default" identifier="serial=192.168.1.13:39743;connection=c35555f1" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,17 +15,17 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_7_API_34_1.avd" />
-              </handle>
-            </Target>
-            <Target type="DEFAULT_BOOT">
-              <handle>
                 <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_8_Pro_API_34.avd" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="Default" identifier="serial=192.168.1.13:40803;connection=ac794092" />
+                <DeviceId pluginId="Default" identifier="serial=192.168.1.13:39283;connection=0ae490a8" />
+              </handle>
+            </Target>
+            <Target type="DEFAULT_BOOT">
+              <handle>
+                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\eetuh\.android\avd\Pixel_7_API_34_1.avd" />
               </handle>
             </Target>
           </targets>

@@ -13,13 +13,16 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
-import kotlinx.coroutines.CoroutineScope
+import com.huikka.supertag.data.dao.RunnerDao
+import com.huikka.supertag.data.helpers.TimeConverter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration.getInstance
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -43,13 +46,10 @@ class GameActivity : AppCompatActivity() {
 
     private var minute = 60000L
 
-    // TODO: Set dynamically (e.g based on difficulty)
-    private var locationUpdateInterval = 10 * minute
-    private var minLocationUpdateInterval = minute
-
     private lateinit var authDao: AuthDao
     private lateinit var gameDao: GameDao
     private lateinit var playerDao: PlayerDao
+    private lateinit var runnerDao: RunnerDao
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +64,7 @@ class GameActivity : AppCompatActivity() {
         authDao = AuthDao(app)
         gameDao = GameDao(app)
         playerDao = PlayerDao(app)
+        runnerDao = RunnerDao(app)
 
         val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
         cardsButton.setOnClickListener {
@@ -96,10 +97,10 @@ class GameActivity : AppCompatActivity() {
         val cr = CopyrightOverlay(this)
         map.overlays.add(cr)
 
-        val intent = Intent(this, LocationUpdateService::class.java)
+        val intent = Intent(applicationContext, LocationUpdateService::class.java)
         startForegroundService(intent)
 
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             playerId = authDao.getUser()!!.id
             gameId = gameDao.getCurrentGameInfo(playerId).gameId!!
             runnerId = gameDao.getRunnerId(gameId)!!
@@ -108,9 +109,18 @@ class GameActivity : AppCompatActivity() {
             if (isRunner) {
                 // TODO: Show runner UI
                 Log.d("RUNNER", "is runner")
+                val nextUpdate = runnerDao.getNextUpdateTime(gameId)
+                if (nextUpdate == null) {
+                    setHeadStart()
+                }
+                scheduleRunnerLocationUpdates()
             } else {
-                CoroutineScope(Dispatchers.Main).launch {
+                Log.d("CHASER", "is chaser")
+                lifecycleScope.launch(Dispatchers.IO) {
                     updateChasersOnMap()
+                }
+                lifecycleScope.launch(Dispatchers.IO) {
+                    updateRunnerOnMap()
                 }
             }
         }
@@ -149,6 +159,7 @@ class GameActivity : AppCompatActivity() {
     private suspend fun updateChasersOnMap() {
         val flow = playerDao.getPlayersByGameIdFlow(gameId)
         flow.collect {
+            Log.d("CHASER", "Updating chasers on map")
             for (player in it) {
                 if (player.id == runnerId || player.id == playerId) {
                     continue
@@ -160,22 +171,30 @@ class GameActivity : AppCompatActivity() {
                 }
                 chasers[player.id]?.location = GeoPoint(player.latitude!!, player.longitude!!)
             }
-
-            // Force refresh map
-            // https://stackoverflow.com/a/72153233
-            map.controller.setCenter(map.mapCenter)
+            map.invalidate()
         }
     }
 
     private suspend fun updateRunnerOnMap() {
-        val loc = playerDao.getPlayerLocation(runnerId)
-        if (!::runner.isInitialized) {
-            runner = drawPlayerOnMap(loc.latitude!!, loc.longitude!!, Color.GREEN, R.drawable.agent)
-            return
+        val flow = runnerDao.getRunnerFlow(gameId)
+        flow.collect {
+            if (it.latitude == null || it.longitude == null) {
+                // Runner location is not set on initial collect
+                return@collect
+            }
+            if (!::runner.isInitialized) {
+                runner = drawPlayerOnMap(
+                    it.latitude, it.longitude, Color.GREEN, R.drawable.agent
+                )
+                Log.d("RUNNER", "runner initialized on map at: ${it.latitude}, ${it.longitude}")
+            } else {
+                runner.location = GeoPoint(it.latitude, it.longitude)
+                map.invalidate()
+                Log.d(
+                    "RUNNER", "runner location updated on map to: ${it.latitude}, ${it.longitude}"
+                )
+            }
         }
-        runner.location = GeoPoint(loc.latitude!!, loc.longitude!!)
-        map.controller.setCenter(map.mapCenter)
-        Log.d("RUNNER", "runner location updated")
     }
 
     private fun drawPlayerOnMap(
@@ -210,6 +229,38 @@ class GameActivity : AppCompatActivity() {
         return playerOverlay
     }
 
+    private suspend fun setHeadStart() {
+        val headStart = System.currentTimeMillis() + gameDao.getHeadStart(gameId)!! * minute
+        val timestamp = TimeConverter.longToTimestamp(headStart)
+        runnerDao.setNextUpdateTime(gameId, timestamp)
+    }
+
+    private suspend fun scheduleRunnerLocationUpdates() {
+        val nextUpdate = runnerDao.getNextUpdateTime(gameId)!!
+        val updateDelay = calculateDelay(nextUpdate)
+        Log.d("RUNNER", "Updating runner location next time at $nextUpdate")
+        delay(updateDelay)
+        val timestamp = calculateNextUpdateTimestamp(updateDelay)
+        updateRunnerLocation(timestamp)
+        scheduleRunnerLocationUpdates()
+    }
+
+    private fun calculateDelay(nextUpdate: String): Long {
+        val time = TimeConverter.timestampToLong(nextUpdate)
+        return time.minus(System.currentTimeMillis()).coerceAtLeast(0)
+    }
+
+    private fun calculateNextUpdateTimestamp(currentDelay: Long): String {
+        val nextDelay =
+            System.currentTimeMillis() + currentDelay.minus(minute).coerceAtLeast(minute)
+        return TimeConverter.longToTimestamp(nextDelay)
+    }
+
+    private suspend fun updateRunnerLocation(nextUpdate: String) {
+        val loc = playerDao.getPlayerLocation(runnerId)
+        val lastUpdate = TimeConverter.longToTimestamp(System.currentTimeMillis())
+        runnerDao.setLocation(gameId, loc.latitude!!, loc.longitude!!, lastUpdate, nextUpdate)
+    }
 
     private fun drawATMsV1() {
         val ATMLocation = GeoPoint(61.4498, 23.8595)
