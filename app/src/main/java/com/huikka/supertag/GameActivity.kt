@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -13,6 +14,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -33,7 +35,9 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.CopyrightOverlay
+import org.osmdroid.views.overlay.ItemizedIconOverlay
 import org.osmdroid.views.overlay.Overlay
+import org.osmdroid.views.overlay.OverlayItem
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.DirectedLocationOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
@@ -162,6 +166,11 @@ class GameActivity : AppCompatActivity() {
 
     private suspend fun initChaserActions() {
         Log.d("CHASER", "is chaser")
+        for (zone in zoneDao.getZones()) {
+            if (zone.type in listOf(ZoneTypes.STORE, ZoneTypes.ATM)) {
+                drawZone(zone)
+            }
+        }
         lifecycleScope.launch(Dispatchers.IO) {
             updateChasersOnMap()
         }
@@ -301,34 +310,49 @@ class GameActivity : AppCompatActivity() {
                 overlay.points = Polygon.pointsAsCircle(location, zone.radius.toDouble())
             }
 
+            in listOf(ZoneTypes.ATM, ZoneTypes.STORE) -> {
+                // Create icon
+                val overlayItem = OverlayItem("ATM", "ATM Location", location)
+                if (zone.type == ZoneTypes.ATM) {
+                    val customIcon: Drawable? = ContextCompat.getDrawable(this, R.drawable.info)
+                    overlayItem.setMarker(customIcon)
+                } else {
+                    val customIcon: Drawable? = ContextCompat.getDrawable(this, R.drawable.cards)
+                    overlayItem.setMarker(customIcon)
+                }
+                overlayItem.markerHotspot = OverlayItem.HotspotPlace.CENTER
+
+                // Create radius around icon
+                val circle = Polygon()
+                circle.points = Polygon.pointsAsCircle(location, zone.radius.toDouble())
+                map.overlays.add(circle)
+
+                val items = ArrayList<OverlayItem>()
+                items.add(overlayItem)
+                overlay = ItemizedIconOverlay(this,
+                    items,
+                    object : ItemizedIconOverlay.OnItemGestureListener<OverlayItem> {
+                        override fun onItemSingleTapUp(index: Int, item: OverlayItem?): Boolean {
+                            Log.d("OVERLAY", "Item tapped")
+                            // Handle single tap
+                            return true
+                        }
+
+                        override fun onItemLongPress(index: Int, item: OverlayItem?): Boolean {
+                            Log.d("OVERLAY", "Item long press")
+                            // Handle long press
+                            return false
+                        }
+                    })
+
+            }
+
             else -> {
                 return
             }
         }
 
         map.overlays.add(overlay)
-    }
-
-    private fun drawATMsV1() {
-        val ATMLocation = GeoPoint(61.4498, 23.8595)
-        val radius = 50.0
-        val circle = Polygon()
-        circle.points = Polygon.pointsAsCircle(ATMLocation, radius)
-
-        map.overlays.add(circle)
-
-    }
-
-    private fun drawATMsV2() {
-        val ATMLocation = GeoPoint(61.4488, 23.8590)
-        val ATMOverlay = DirectedLocationOverlay(this)
-        ATMOverlay.location = ATMLocation
-        ATMOverlay.setAccuracy(50)
-
-        map.overlays.add(ATMOverlay)
-
-        //TODO("Get ATMs from database, Set icon for zone")
-
     }
 
     private fun startTimer(timer: CustomTimer, time: Long) {

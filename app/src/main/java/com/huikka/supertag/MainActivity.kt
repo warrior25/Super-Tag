@@ -222,7 +222,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun hostGame() {
         var gameId: String
         while (true) {
-            gameId = List(6) { ('A'..'Z').random() }.joinToString("")
+            gameId = List(2) { ('A'..'Z').random() }.joinToString("")
             if (!gameDao.checkGameExists(gameId)) {
                 break
             }
