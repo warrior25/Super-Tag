@@ -20,7 +20,10 @@ import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
+import com.huikka.supertag.data.dao.ZoneDao
+import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.TimeConverter
+import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.fragments.ChaserTimers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -30,6 +33,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.CopyrightOverlay
+import org.osmdroid.views.overlay.Overlay
 import org.osmdroid.views.overlay.Polygon
 import org.osmdroid.views.overlay.mylocation.DirectedLocationOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
@@ -51,6 +55,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var gameDao: GameDao
     private lateinit var playerDao: PlayerDao
     private lateinit var runnerDao: RunnerDao
+    private lateinit var zoneDao: ZoneDao
 
     private lateinit var timers: ChaserTimers
 
@@ -68,6 +73,7 @@ class GameActivity : AppCompatActivity() {
         gameDao = GameDao(app)
         playerDao = PlayerDao(app)
         runnerDao = RunnerDao(app)
+        zoneDao = ZoneDao(app)
 
         val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
         cardsButton.setOnClickListener {
@@ -111,28 +117,13 @@ class GameActivity : AppCompatActivity() {
             val intent = Intent(applicationContext, LocationUpdateService::class.java)
             startForegroundService(intent)
 
+            initCommonActions()
             if (isRunner) {
-                // TODO: Show runner UI
-                Log.d("RUNNER", "is runner")
-                val nextUpdate = runnerDao.getNextUpdateTime(gameId)
-                if (nextUpdate == null) {
-                    applyHeadStart()
-                }
-                scheduleRunnerLocationUpdates()
+                initRunnerActions()
             } else {
-                Log.d("CHASER", "is chaser")
-                lifecycleScope.launch(Dispatchers.IO) {
-                    updateChasersOnMap()
-                }
-                lifecycleScope.launch(Dispatchers.IO) {
-                    updateRunnerOnMap()
-                }
+                initChaserActions()
             }
         }
-
-        drawUserOnMap()
-        drawATMsV1()
-        drawATMsV2()
     }
 
     override fun onResume() {
@@ -153,7 +144,33 @@ class GameActivity : AppCompatActivity() {
         map.onPause()  //needed for compass, my location overlays, v6.0.0 and up
     }
 
-    private fun drawUserOnMap() {
+    private suspend fun initCommonActions() {
+        val playingArea = zoneDao.getPlayingArea()!!
+        drawZone(playingArea)
+        drawMyLocation()
+    }
+
+    private suspend fun initRunnerActions() {
+        // TODO: Show runner UI
+        Log.d("RUNNER", "is runner")
+        val nextUpdate = runnerDao.getNextUpdateTime(gameId)
+        if (nextUpdate == null) {
+            applyHeadStart()
+        }
+        scheduleRunnerLocationUpdates()
+    }
+
+    private suspend fun initChaserActions() {
+        Log.d("CHASER", "is chaser")
+        lifecycleScope.launch(Dispatchers.IO) {
+            updateChasersOnMap()
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            updateRunnerOnMap()
+        }
+    }
+
+    private fun drawMyLocation() {
         val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), this.map)
         myLocationOverlay.enableMyLocation()
         myLocationOverlay.enableFollowLocation()
@@ -169,7 +186,7 @@ class GameActivity : AppCompatActivity() {
                     continue
                 }
                 if (chasers[player.id] == null) {
-                    chasers[player.id!!] = drawPlayerOnMap(
+                    chasers[player.id!!] = drawPlayer(
                         player.latitude!!, player.longitude!!, Color.RED, R.drawable.agent
                     )
                 }
@@ -182,15 +199,17 @@ class GameActivity : AppCompatActivity() {
     private suspend fun updateRunnerOnMap() {
         val flow = runnerDao.getRunnerFlow(gameId)
         flow.collect {
-            val updateDelay = calculateDelay(it.nextUpdate!!)
-            startTimer(timers.runnerLocationTimer, updateDelay)
+            if (it.nextUpdate != null) {
+                val updateDelay = calculateDelay(it.nextUpdate)
+                startTimer(timers.runnerLocationTimer, updateDelay)
+            }
 
             if (it.latitude == null || it.longitude == null) {
                 // Runner location is not set on initial collect
                 return@collect
             }
             if (!::runner.isInitialized) {
-                runner = drawPlayerOnMap(
+                runner = drawPlayer(
                     it.latitude, it.longitude, Color.GREEN, R.drawable.agent
                 )
             } else {
@@ -200,7 +219,7 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
-    private fun drawPlayerOnMap(
+    private fun drawPlayer(
         latitude: Double, longitude: Double, color: Int, icon: Int
     ): DirectedLocationOverlay {
         val conf = Bitmap.Config.ARGB_8888
@@ -271,6 +290,23 @@ class GameActivity : AppCompatActivity() {
         val loc = playerDao.getPlayerLocation(runnerId)
         val lastUpdate = TimeConverter.longToTimestamp(System.currentTimeMillis())
         runnerDao.setLocation(gameId, loc.latitude!!, loc.longitude!!, lastUpdate, nextUpdate)
+    }
+
+    private fun drawZone(zone: Zone) {
+        val location = GeoPoint(zone.latitude, zone.longitude)
+        val overlay: Overlay
+        when (zone.type) {
+            ZoneTypes.PLAYING_AREA -> {
+                overlay = Polygon()
+                overlay.points = Polygon.pointsAsCircle(location, zone.radius.toDouble())
+            }
+
+            else -> {
+                return
+            }
+        }
+
+        map.overlays.add(overlay)
     }
 
     private fun drawATMsV1() {
