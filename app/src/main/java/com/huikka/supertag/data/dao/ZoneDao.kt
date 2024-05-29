@@ -29,7 +29,7 @@ class ZoneDao(application: STApplication) {
         }
     }
 
-    suspend fun getZoneById(id: String): Zone? {
+    suspend fun getZoneById(id: Int): Zone? {
         return try {
             db.from("zones").select {
                 filter {

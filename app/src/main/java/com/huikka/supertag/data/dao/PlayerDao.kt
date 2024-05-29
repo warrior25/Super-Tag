@@ -10,6 +10,7 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.filter.FilterOperation
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.selectAsFlow
+import io.github.jan.supabase.realtime.selectSingleValueAsFlow
 import kotlinx.coroutines.flow.Flow
 import java.sql.SQLException
 
@@ -21,6 +22,15 @@ class PlayerDao(application: STApplication) {
         return db.from("players").selectAsFlow(
             Player::id, filter = FilterOperation("game_id", FilterOperator.EQ, gameId)
         )
+    }
+
+    @OptIn(SupabaseExperimental::class)
+    fun getPlayerByIdFlow(id: String): Flow<Player> {
+        return db.from("players").selectSingleValueAsFlow(
+            Player::id
+        ) {
+            eq("id", id)
+        }
     }
 
     suspend fun updatePlayerLocation(

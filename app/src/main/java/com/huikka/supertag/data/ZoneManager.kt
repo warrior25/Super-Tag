@@ -4,6 +4,7 @@ import android.location.Location
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.ZoneDao
 import com.huikka.supertag.data.dto.Zone
+import com.huikka.supertag.data.helpers.ZoneTypes
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -39,7 +40,7 @@ class ZoneManager(application: STApplication) {
     suspend fun getZoneFromLocation(loc: Location): Zone? {
         val zones = zoneDao.getZones()
         for (zone in zones) {
-            if (isLocationInZone(zone, loc)) {
+            if (isLocationInZone(zone, loc) && zone.type != ZoneTypes.PLAYING_AREA) {
                 return zone
             }
         }

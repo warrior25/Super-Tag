@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
@@ -23,9 +24,12 @@ import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
 import com.huikka.supertag.data.dto.Zone
+import com.huikka.supertag.data.helpers.Config
+import com.huikka.supertag.data.helpers.Sides
 import com.huikka.supertag.data.helpers.TimeConverter
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.fragments.ChaserTimers
+import com.huikka.supertag.fragments.RunnerTimers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -60,7 +64,12 @@ class GameActivity : AppCompatActivity() {
     private lateinit var runnerDao: RunnerDao
     private lateinit var zoneDao: ZoneDao
 
-    private lateinit var timers: ChaserTimers
+    private lateinit var chaserTimers: ChaserTimers
+    private lateinit var runnerTimers: RunnerTimers
+
+    private var runnerZoneOverlays = mutableListOf<Overlay>()
+
+    private lateinit var zones: List<Zone>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,7 +100,8 @@ class GameActivity : AppCompatActivity() {
             }
         }
 
-        timers = supportFragmentManager.findFragmentById(R.id.timers) as ChaserTimers
+        chaserTimers = supportFragmentManager.findFragmentById(R.id.chaserTimers) as ChaserTimers
+        runnerTimers = supportFragmentManager.findFragmentById(R.id.runnerTimers) as RunnerTimers
 
         // map initialization
         map = findViewById(R.id.map)
@@ -116,6 +126,7 @@ class GameActivity : AppCompatActivity() {
             gameId = gameDao.getCurrentGameInfo(playerId).gameId!!
             runnerId = gameDao.getRunnerId(gameId)!!
             isRunner = playerId == runnerId
+            zones = zoneDao.getZones()
 
             val intent = Intent(applicationContext, LocationUpdateService::class.java)
             startForegroundService(intent)
@@ -151,12 +162,15 @@ class GameActivity : AppCompatActivity() {
 
     private suspend fun initCommonActions() {
         val playingArea = zoneDao.getPlayingArea()!!
-        drawZone(playingArea)
+        drawZoneRadius(playingArea)
         drawMyLocation()
     }
 
     private suspend fun initRunnerActions() {
         Log.d("RUNNER", "is runner")
+        lifecycleScope.launch {
+            findViewById<View>(R.id.chaserTimers).visibility = View.GONE
+        }
         val nextUpdate = runnerDao.getNextUpdateTime(gameId)
         if (nextUpdate == null) {
             applyHeadStart()
@@ -165,25 +179,116 @@ class GameActivity : AppCompatActivity() {
             scheduleRunnerLocationUpdates()
         }
 
-        for (zone in zoneDao.getZones()) {
-            if (zone.type == ZoneTypes.ATTRACTION) {
-                drawZone(zone)
-            }
+        lifecycleScope.launch(Dispatchers.IO) {
+            selectActiveRunnerZones()
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            checkRunnerZonePresence()
         }
     }
 
     private suspend fun initChaserActions() {
         Log.d("CHASER", "is chaser")
-        for (zone in zoneDao.getZones()) {
+        lifecycleScope.launch {
+            findViewById<View>(R.id.runnerTimers).visibility = View.GONE
+        }
+
+        val chaserZones = mutableListOf<Zone>()
+        for (zone in zones) {
             if (zone.type in listOf(ZoneTypes.STORE, ZoneTypes.ATM)) {
-                drawZone(zone)
+                chaserZones.add(zone)
             }
         }
+        drawZones(chaserZones)
+
         lifecycleScope.launch(Dispatchers.IO) {
             updateChasersOnMap()
         }
         lifecycleScope.launch(Dispatchers.IO) {
             updateRunnerOnMap()
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            checkChaserZonePresence()
+        }
+    }
+
+    private suspend fun checkChaserZonePresence() {
+        val flow = playerDao.getPlayerByIdFlow(playerId)
+        var lastZoneId: Int? = null
+
+        flow.collect { player ->
+            val currentZoneId = player.zoneId
+            if (currentZoneId == null) {
+                chaserTimers.moneyTimer.stopTimer()
+            } else if (currentZoneId != lastZoneId) {
+                val currentZone = zoneDao.getZoneById(currentZoneId)
+                when (currentZone!!.type) {
+                    ZoneTypes.ATM -> {
+                        startTimer(chaserTimers.moneyTimer, Config.ATM_TIME) {
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                gameDao.addMoney(gameId, Sides.Chasers, Config.ATM_MONEY)
+                            }
+                        }
+                    }
+
+                    ZoneTypes.STORE -> {
+                        startTimer(chaserTimers.moneyTimer, Config.STORE_TIME) {
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                gameDao.addMoney(gameId, Sides.Chasers, Config.STORE_MONEY)
+                            }
+                        }
+                    }
+                }
+            }
+            lastZoneId = currentZoneId
+        }
+    }
+
+    private suspend fun checkRunnerZonePresence() {
+        val flow = playerDao.getPlayerByIdFlow(playerId)
+        var lastZoneId: Int? = null
+
+        flow.collect { player ->
+            val currentZoneId = player.zoneId
+            if (currentZoneId == null) {
+                chaserTimers.moneyTimer.stopTimer()
+            } else if (currentZoneId != lastZoneId) {
+                val currentZone = zoneDao.getZoneById(currentZoneId)!!
+                val activeZones = gameDao.getActiveRunnerZones(gameId)!!
+                if (currentZone.type == ZoneTypes.ATTRACTION && currentZone.id!! in activeZones) {
+                    startTimer(runnerTimers.moneyTimer, Config.ATTRACTION_TIME) {
+                        lifecycleScope.launch {
+                            gameDao.addMoney(gameId, Sides.Runner, Config.ATTRACTION_MONEY)
+                            runnerTimers.zoneTimer.setTime(0)
+                        }
+                    }
+                }
+            }
+            lastZoneId = currentZoneId
+        }
+    }
+
+    private suspend fun selectActiveRunnerZones() {
+        val zone1 = zones.random()
+        var zone2: Zone
+        do {
+            zone2 = zones.random()
+        } while (zone1.id == zone2.id)
+
+        val activeZoneIds = listOf(zone1.id!!, zone2.id!!)
+        val activeZones = listOf(zone1, zone2)
+        gameDao.setActiveRunnerZones(gameId, activeZoneIds)
+
+        for (overlay in runnerZoneOverlays) {
+            map.overlays.remove(overlay)
+        }
+        runnerZoneOverlays = drawZones(activeZones)
+
+        startTimer(runnerTimers.zoneTimer, Config.RUNNER_ZONE_SHUFFLE_TIME) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                selectActiveRunnerZones()
+            }
         }
     }
 
@@ -218,7 +323,7 @@ class GameActivity : AppCompatActivity() {
         flow.collect {
             if (it.nextUpdate != null) {
                 val updateDelay = calculateDelay(it.nextUpdate)
-                startTimer(timers.runnerLocationTimer, updateDelay)
+                startTimer(chaserTimers.runnerLocationTimer, updateDelay)
             }
 
             if (it.latitude == null || it.longitude == null) {
@@ -309,63 +414,62 @@ class GameActivity : AppCompatActivity() {
         runnerDao.setLocation(gameId, loc.latitude!!, loc.longitude!!, lastUpdate, nextUpdate)
     }
 
-    private fun drawZone(zone: Zone) {
+    private fun drawZoneRadius(zone: Zone): Overlay {
         val location = GeoPoint(zone.latitude!!, zone.longitude!!)
-        val overlay: Overlay
-        when (zone.type) {
-            ZoneTypes.PLAYING_AREA -> {
-                overlay = Polygon()
-                overlay.points = Polygon.pointsAsCircle(location, zone.radius!!.toDouble())
-            }
-
-            in listOf(ZoneTypes.ATM, ZoneTypes.STORE, ZoneTypes.ATTRACTION) -> {
-                // Create icon
-                val overlayItem = OverlayItem("ATM", "ATM Location", location)
-                val drawableId: Int = resources.getIdentifier(
-                    zone.drawable, "drawable", applicationContext.packageName
-                )
-                val customIcon = ContextCompat.getDrawable(this, drawableId)
-                overlayItem.setMarker(customIcon)
-                overlayItem.markerHotspot = OverlayItem.HotspotPlace.CENTER
-
-                // Create radius around icon
-                val circle = Polygon()
-                circle.points = Polygon.pointsAsCircle(location, zone.radius!!.toDouble())
-                map.overlays.add(circle)
-
-                val items = ArrayList<OverlayItem>()
-                items.add(overlayItem)
-                overlay = ItemizedIconOverlay(
-                    this,
-                    items,
-                    object : ItemizedIconOverlay.OnItemGestureListener<OverlayItem> {
-                        override fun onItemSingleTapUp(index: Int, item: OverlayItem?): Boolean {
-                            Log.d("OVERLAY", "Item tapped")
-                            // Handle single tap
-                            return true
-                        }
-
-                        override fun onItemLongPress(index: Int, item: OverlayItem?): Boolean {
-                            Log.d("OVERLAY", "Item long press")
-                            // Handle long press
-                            return false
-                        }
-                    })
-
-            }
-
-            else -> {
-                return
-            }
-        }
+        val overlay = Polygon()
+        overlay.points = Polygon.pointsAsCircle(location, zone.radius!!.toDouble())
 
         map.overlays.add(overlay)
+        return overlay
     }
 
-    private fun startTimer(timer: CustomTimer, time: Long) {
+    private fun drawZones(zones: List<Zone>): MutableList<Overlay> {
+        val overlays = mutableListOf<Overlay>()
+        val items = ArrayList<OverlayItem>()
+
+        for (zone in zones) {
+            val location = GeoPoint(zone.latitude!!, zone.longitude!!)
+            val overlayItem = OverlayItem("ATM", "ATM Location", location)
+            val drawableId: Int = resources.getIdentifier(
+                zone.drawable, "drawable", applicationContext.packageName
+            )
+            val customIcon = ContextCompat.getDrawable(this, drawableId)
+            overlayItem.setMarker(customIcon)
+            overlayItem.markerHotspot = OverlayItem.HotspotPlace.CENTER
+
+            // Create radius around icon
+            val radiusOverlay = drawZoneRadius(zone)
+            overlays.add(radiusOverlay)
+
+            items.add(overlayItem)
+        }
+
+        val overlay = ItemizedIconOverlay(this,
+            items,
+            object : ItemizedIconOverlay.OnItemGestureListener<OverlayItem> {
+                override fun onItemSingleTapUp(index: Int, item: OverlayItem?): Boolean {
+                    Log.d("OVERLAY", "Item tapped")
+                    // Handle single tap
+                    return true
+                }
+
+                override fun onItemLongPress(index: Int, item: OverlayItem?): Boolean {
+                    Log.d("OVERLAY", "Item long press")
+                    // Handle long press
+                    return false
+                }
+            })
+
+        map.overlays.add(overlay)
+        overlays.add(overlay)
+
+        return overlays
+    }
+
+    private fun startTimer(timer: CustomTimer, time: Long, onTimeout: () -> Unit = {}) {
         lifecycleScope.launch(Dispatchers.Main) {
             timer.setTime(time)
-            timer.startTimer()
+            timer.startTimer(onTimeout)
         }
     }
 

@@ -5,6 +5,7 @@ import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.CurrentGame
 import com.huikka.supertag.data.dto.Game
 import com.huikka.supertag.data.dto.GameStatus
+import com.huikka.supertag.data.helpers.Sides
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
@@ -141,5 +142,84 @@ class GameDao(application: STApplication) {
                 eq("id", gameId)
             }
         }.decodeSingle<Game>().initialTrackingInterval
+    }
+
+    suspend fun addMoney(gameId: String, side: Sides, amount: Int): Error? {
+        return try {
+            val newMoney = getMoney(gameId, side)!! + amount
+            var column = "chaser_money"
+            if (side == Sides.Runner) {
+                column = "runner_money"
+            }
+            db.from("games").update({
+                set(column, newMoney)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Error(e)
+        }
+    }
+
+    suspend fun reduceMoney(gameId: String, side: Sides, amount: Int): Error? {
+        return try {
+            val newMoney = getMoney(gameId, side)!! - amount
+            var column = "chaser_money"
+            if (side == Sides.Runner) {
+                column = "runner_money"
+            }
+            db.from("games").update({
+                set(column, newMoney)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Error(e)
+        }
+    }
+
+    private suspend fun getMoney(gameId: String, side: Sides): Int? {
+        val game = db.from("games").select(columns = Columns.list("chaser_money", "runner_money")) {
+            filter {
+                eq("id", gameId)
+            }
+        }.decodeSingle<Game>()
+        if (side == Sides.Runner) {
+            return game.runnerMoney
+        }
+        return game.chaserMoney
+    }
+
+    suspend fun getActiveRunnerZones(gameId: String): List<Int>? {
+        return try {
+            db.from("games").select(columns = Columns.list("active_runner_zones")) {
+                filter {
+                    eq("id", gameId)
+                }
+            }.decodeSingle<Game>().activeRunnerZones
+        } catch (e: Exception) {
+            Log.d("getActiveRunnerZones", e.toString())
+            null
+        }
+    }
+
+    suspend fun setActiveRunnerZones(gameId: String, zones: List<Int>) {
+        try {
+            db.from("games").update({
+                set("active_runner_zones", zones)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+        } catch (e: Exception) {
+            Log.d("getActiveRunnerZones", e.toString())
+        }
     }
 }
