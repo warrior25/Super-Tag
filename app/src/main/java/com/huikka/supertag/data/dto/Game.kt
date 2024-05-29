@@ -15,5 +15,6 @@ data class Game(
     @SerialName("start_time") val startTime: String? = null,
     @SerialName("end_time") val endTime: String? = null,
     @SerialName("head_start") val headStart: Int? = null,
-    @SerialName("initial_tracking_interval") val initialTrackingInterval: Int? = null
+    @SerialName("initial_tracking_interval") val initialTrackingInterval: Int? = null,
+    @SerialName("active_runner_zones") val activeRunnerZones: List<Int>? = null
 )

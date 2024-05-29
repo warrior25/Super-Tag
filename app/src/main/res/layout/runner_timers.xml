@@ -5,27 +5,27 @@
     android:layout_height="match_parent">
 
     <com.huikka.supertag.CustomTimer
-        android:id="@+id/runnerLocationTimer"
+        android:id="@+id/runnerMoneyTimer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:customIcon="@drawable/runner"
         android:layout_marginStart="40dp"
+        app:customIcon="@drawable/atm"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@id/chaserMoneyTimer"
+        app:layout_constraintEnd_toEndOf="@id/zoneTimer"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
     </com.huikka.supertag.CustomTimer>
 
     <com.huikka.supertag.CustomTimer
-        android:id="@+id/chaserMoneyTimer"
+        android:id="@+id/zoneTimer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="40dp"
-        app:customIcon="@drawable/atm"
+        app:customIcon="@drawable/zone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/runnerLocationTimer"
+        app:layout_constraintStart_toStartOf="@+id/runnerMoneyTimer"
         app:layout_constraintTop_toTopOf="parent" />
 
 
