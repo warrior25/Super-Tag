@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -121,7 +120,9 @@ class GameActivity : AppCompatActivity() {
             val intent = Intent(applicationContext, LocationUpdateService::class.java)
             startForegroundService(intent)
 
-            initCommonActions()
+            lifecycleScope.launch(Dispatchers.Main) {
+                initCommonActions()
+            }
             if (isRunner) {
                 initRunnerActions()
             } else {
@@ -155,13 +156,20 @@ class GameActivity : AppCompatActivity() {
     }
 
     private suspend fun initRunnerActions() {
-        // TODO: Show runner UI
         Log.d("RUNNER", "is runner")
         val nextUpdate = runnerDao.getNextUpdateTime(gameId)
         if (nextUpdate == null) {
             applyHeadStart()
         }
-        scheduleRunnerLocationUpdates()
+        lifecycleScope.launch(Dispatchers.IO) {
+            scheduleRunnerLocationUpdates()
+        }
+
+        for (zone in zoneDao.getZones()) {
+            if (zone.type == ZoneTypes.ATTRACTION) {
+                drawZone(zone)
+            }
+        }
     }
 
     private suspend fun initChaserActions() {
@@ -302,34 +310,33 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun drawZone(zone: Zone) {
-        val location = GeoPoint(zone.latitude, zone.longitude)
+        val location = GeoPoint(zone.latitude!!, zone.longitude!!)
         val overlay: Overlay
         when (zone.type) {
             ZoneTypes.PLAYING_AREA -> {
                 overlay = Polygon()
-                overlay.points = Polygon.pointsAsCircle(location, zone.radius.toDouble())
+                overlay.points = Polygon.pointsAsCircle(location, zone.radius!!.toDouble())
             }
 
-            in listOf(ZoneTypes.ATM, ZoneTypes.STORE) -> {
+            in listOf(ZoneTypes.ATM, ZoneTypes.STORE, ZoneTypes.ATTRACTION) -> {
                 // Create icon
                 val overlayItem = OverlayItem("ATM", "ATM Location", location)
-                if (zone.type == ZoneTypes.ATM) {
-                    val customIcon: Drawable? = ContextCompat.getDrawable(this, R.drawable.info)
-                    overlayItem.setMarker(customIcon)
-                } else {
-                    val customIcon: Drawable? = ContextCompat.getDrawable(this, R.drawable.cards)
-                    overlayItem.setMarker(customIcon)
-                }
+                val drawableId: Int = resources.getIdentifier(
+                    zone.drawable, "drawable", applicationContext.packageName
+                )
+                val customIcon = ContextCompat.getDrawable(this, drawableId)
+                overlayItem.setMarker(customIcon)
                 overlayItem.markerHotspot = OverlayItem.HotspotPlace.CENTER
 
                 // Create radius around icon
                 val circle = Polygon()
-                circle.points = Polygon.pointsAsCircle(location, zone.radius.toDouble())
+                circle.points = Polygon.pointsAsCircle(location, zone.radius!!.toDouble())
                 map.overlays.add(circle)
 
                 val items = ArrayList<OverlayItem>()
                 items.add(overlayItem)
-                overlay = ItemizedIconOverlay(this,
+                overlay = ItemizedIconOverlay(
+                    this,
                     items,
                     object : ItemizedIconOverlay.OnItemGestureListener<OverlayItem> {
                         override fun onItemSingleTapUp(index: Int, item: OverlayItem?): Boolean {

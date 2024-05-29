@@ -32,8 +32,8 @@ class ZoneManager(application: STApplication) {
     private fun isLocationInZone(
         zone: Zone, loc: Location
     ): Boolean {
-        val distance = haversine(zone.latitude, zone.longitude, loc.latitude, loc.longitude)
-        return distance <= zone.radius + loc.accuracy
+        val distance = haversine(zone.latitude!!, zone.longitude!!, loc.latitude, loc.longitude)
+        return distance <= zone.radius!! + loc.accuracy
     }
 
     suspend fun getZoneFromLocation(loc: Location): Zone? {
