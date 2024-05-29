@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Game(
 
-    @SerialName("id") val id: String,
-    @SerialName("status") val status: String,
+    @SerialName("id") val id: String? = null,
+    @SerialName("status") val status: String? = null,
     @SerialName("runner_id") val runnerId: String? = null,
     @SerialName("runner_money") val runnerMoney: Int? = null,
     @SerialName("chaser_money") val chaserMoney: Int? = null,
@@ -15,6 +15,6 @@ data class Game(
     @SerialName("start_time") val startTime: String? = null,
     @SerialName("end_time") val endTime: String? = null,
     @SerialName("head_start") val headStart: Int? = null,
-    @SerialName("next_runner_location_update") val nextRunnerLocationUpdate: String? = null,
-    @SerialName("last_runner_location_update") val lastRunnerLocationUpdate: String? = null
+    @SerialName("initial_tracking_interval") val initialTrackingInterval: Int? = null,
+    @SerialName("active_runner_zones") val activeRunnerZones: List<Int>? = null
 )

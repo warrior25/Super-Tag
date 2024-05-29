@@ -42,7 +42,7 @@ class PlayerListAdapter(
                 checkedPosition = holder.adapterPosition
 
                 CoroutineScope(Dispatchers.Main).launch {
-                    val currentGameId = gameDao.getCurrentGameInfo(current.id).gameId!!
+                    val currentGameId = gameDao.getCurrentGameInfo(current.id!!).gameId!!
                     gameDao.setRunnerId(currentGameId, current.id)
                 }
 

@@ -1,9 +1,6 @@
 package com.huikka.supertag
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -11,7 +8,6 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
@@ -20,6 +16,7 @@ import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dto.Player
+import com.huikka.supertag.data.helpers.GameStatuses
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,9 +30,6 @@ class LobbyActivity : AppCompatActivity() {
     private var isHost: Boolean = false
 
     private lateinit var playerId: String
-
-    private lateinit var locationManager: LocationManager
-    private lateinit var locationListener: PlayerLocationListener
 
     private var players: ArrayList<Player> = ArrayList()
     private lateinit var adapter: PlayerListAdapter
@@ -89,9 +83,12 @@ class LobbyActivity : AppCompatActivity() {
             } else {
                 CoroutineScope(Dispatchers.IO).launch {
                     val flow = gameDao.getGameFlow(gameId)
-                    flow.collect {
+                    flow.collect { game ->
                         CoroutineScope(Dispatchers.Main).launch {
-                            adapter.setRunner(it.runnerId!!)
+                            adapter.setRunner(game.runnerId!!)
+                            if (game.status == GameStatuses.PLAYING) {
+                                startGameActivity()
+                            }
                         }
                     }
                 }
@@ -105,26 +102,12 @@ class LobbyActivity : AppCompatActivity() {
             }
 
             startButton.setOnClickListener {
-                val intent = Intent(baseContext, GameActivity::class.java)
-                startActivity(intent)
+                CoroutineScope(Dispatchers.IO).launch {
+                    gameDao.setGameStatus(gameId, GameStatuses.PLAYING)
+                    startGameActivity()
+                }
             }
             getPlayers()
-        }
-
-        // TODO: Start tracking location only after game starts
-        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        locationListener = PlayerLocationListener(app, playerId)
-        if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER, 5000, 10f, locationListener
-            )
-
-
         }
     }
 
@@ -134,7 +117,6 @@ class LobbyActivity : AppCompatActivity() {
         } else {
             playerDao.removeFromGame(playerId)
         }
-        locationManager.removeUpdates(locationListener)
         finish()
     }
 
@@ -147,5 +129,10 @@ class LobbyActivity : AppCompatActivity() {
             }
             adapter.notifyDataSetChanged()
         }
+    }
+
+    private fun startGameActivity() {
+        val intent = Intent(baseContext, GameActivity::class.java)
+        startActivity(intent)
     }
 }
