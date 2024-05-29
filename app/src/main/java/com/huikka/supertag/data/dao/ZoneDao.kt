@@ -1,5 +1,6 @@
 package com.huikka.supertag.data.dao
 
+import android.util.Log
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.Zone
 import io.github.jan.supabase.postgrest.Postgrest
@@ -28,7 +29,7 @@ class ZoneDao(application: STApplication) {
         }
     }
 
-    suspend fun getZoneById(id: String): Zone? {
+    suspend fun getZoneById(id: Int): Zone? {
         return try {
             db.from("zones").select {
                 filter {
@@ -37,6 +38,19 @@ class ZoneDao(application: STApplication) {
             }.decodeSingleOrNull<Zone>()
         } catch (e: Exception) {
             throw e
+        }
+    }
+
+    suspend fun getPlayingArea(): Zone? {
+        return try {
+            db.from("zones").select {
+                filter {
+                    eq("type", "playing_area")
+                }
+            }.decodeSingle<Zone>()
+        } catch (e: Exception) {
+            Log.e("PLAYING_AREA", "Failed to fetch playing area")
+            null
         }
     }
 }
