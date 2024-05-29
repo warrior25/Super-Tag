@@ -15,9 +15,7 @@ import androidx.core.content.ContextCompat
 
 @RequiresApi(Build.VERSION_CODES.O)
 class CustomTimer @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     private val iconImageView: ImageView
@@ -31,11 +29,9 @@ class CustomTimer @JvmOverloads constructor(
 
         attrs?.let {
             val typedArray = context.obtainStyledAttributes(it, R.styleable.CustomTimer, 0, 0)
-            val minutes = typedArray.getInt(R.styleable.CustomTimer_customTime, 5)
             val icon = typedArray.getDrawable(R.styleable.CustomTimer_customIcon)
             typedArray.recycle()
 
-            setTime(minutes)
             setIcon(icon ?: ContextCompat.getDrawable(context, R.drawable.runner))
         }
 
@@ -47,12 +43,10 @@ class CustomTimer @JvmOverloads constructor(
 
             }
         }
-
-        startTimer()
     }
 
-    fun setTime(minutes: Int) {
-        chronometer.base = (SystemClock.elapsedRealtime() + (minutes * 1000))
+    fun setTime(ms: Long) {
+        chronometer.base = SystemClock.elapsedRealtime() + ms
     }
 
     fun startTimer() {

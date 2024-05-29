@@ -11,13 +11,15 @@ import com.huikka.supertag.R
 
 class ChaserTimers : Fragment(R.layout.chaser_timers) {
 
+    lateinit var runnerLocationTimer: CustomTimer
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.chaser_timers, container, false)
 
-        val customItemView = view.findViewById<CustomTimer>(R.id.testTimer)
-        customItemView.setOnClickListener {
+        runnerLocationTimer = view.findViewById(R.id.testTimer)
+        runnerLocationTimer.setOnClickListener {
             onItemClick("timer")
             // Handle click event here if needed
         }

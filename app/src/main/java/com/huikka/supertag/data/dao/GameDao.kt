@@ -1,8 +1,10 @@
 package com.huikka.supertag.data.dao
 
+import android.util.Log
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.CurrentGame
 import com.huikka.supertag.data.dto.Game
+import com.huikka.supertag.data.dto.GameStatus
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
@@ -14,12 +16,12 @@ class GameDao(application: STApplication) {
 
     private val db: Postgrest = application.supabase.postgrest
 
-    private suspend fun getGameById(id: String): Game {
-        return db.from("games").select {
+    suspend fun getGameStatus(id: String): String {
+        return db.from("games").select(columns = Columns.list("status")) {
             filter {
                 eq("id", id)
             }
-        }.decodeSingle<Game>()
+        }.decodeSingle<GameStatus>().status
     }
 
     suspend fun checkGameExists(id: String): Boolean {
@@ -51,10 +53,26 @@ class GameDao(application: STApplication) {
                 filter {
                     eq("id", gameId)
                 }
-            }.decodeSingleOrNull<String>()
+            }.decodeSingle<Game>().runnerId
         } catch (e: Exception) {
+            Log.d("getRunnerId", e.toString())
             null
         }
+    }
+
+    suspend fun setGameStatus(gameId: String, status: String): Error? {
+        try {
+            db.from("games").update({
+                set("status", status)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+        } catch (e: Exception) {
+            return Error(e)
+        }
+        return null
     }
 
     @OptIn(SupabaseExperimental::class)
@@ -66,20 +84,7 @@ class GameDao(application: STApplication) {
 
     suspend fun createGame(game: Game): Error? {
         try {
-            val gameDto = Game(
-                id = game.id,
-                status = game.status,
-                runnerId = game.runnerId,
-                runnerMoney = game.runnerMoney,
-                chaserMoney = game.chaserMoney,
-                robberyInProgress = game.robberyInProgress,
-                startTime = game.startTime,
-                endTime = game.endTime,
-                headStart = game.headStart,
-                nextRunnerLocationUpdate = game.nextRunnerLocationUpdate,
-                lastRunnerLocationUpdate = game.lastRunnerLocationUpdate
-            )
-            db.from("games").insert(gameDto)
+            db.from("games").insert(game)
         } catch (e: Exception) {
             return Error(e)
         }
@@ -105,5 +110,36 @@ class GameDao(application: STApplication) {
                 eq("id", userId)
             }
         }.decodeSingle<CurrentGame>()
+    }
+
+    suspend fun setHeadStart(gameId: String, headStart: Int): Error? {
+        return try {
+            db.from("games").update({
+                set("head_start", headStart)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Error(e)
+        }
+    }
+
+    suspend fun getHeadStart(gameId: String): Int? {
+        return db.from("games").select(columns = Columns.list("head_start")) {
+            filter {
+                eq("id", gameId)
+            }
+        }.decodeSingle<Game>().headStart
+    }
+
+    suspend fun getInitialTrackingInterval(gameId: String): Int? {
+        return db.from("games").select(columns = Columns.list("initial_tracking_interval")) {
+            filter {
+                eq("id", gameId)
+            }
+        }.decodeSingle<Game>().initialTrackingInterval
     }
 }

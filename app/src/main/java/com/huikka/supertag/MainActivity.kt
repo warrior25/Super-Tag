@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -23,7 +24,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
+import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dto.Game
+import com.huikka.supertag.data.helpers.GameStatuses
 import com.huikka.supertag.ui.login.LoginActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var gameDao: GameDao
     private lateinit var authDao: AuthDao
     private lateinit var playerDao: PlayerDao
+    private lateinit var runnerDao: RunnerDao
 
     private lateinit var playerId: String
 
@@ -58,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         authDao = AuthDao(app)
         gameDao = GameDao(app)
         playerDao = PlayerDao(app)
+        runnerDao = RunnerDao(app)
 
         // Setup button actions
         joinGameButton = findViewById(R.id.joinGameButton)
@@ -96,7 +101,12 @@ class MainActivity : AppCompatActivity() {
                 playerId = authDao.getUser()!!.id
                 val currentGame = gameDao.getCurrentGameInfo(playerId)
                 if (currentGame.gameId != null) {
-                    startLobbyActivity()
+                    val gameStatus = gameDao.getGameStatus(currentGame.gameId)
+                    if (gameStatus == GameStatuses.PLAYING) {
+                        startGameActivity()
+                    } else if (gameStatus == GameStatuses.LOBBY) {
+                        startLobbyActivity()
+                    }
                 }
             }
             loading.visibility = View.GONE
@@ -135,7 +145,7 @@ class MainActivity : AppCompatActivity() {
                 // decision.
                 locationPermissionFailed = true
                 locationPermissionDenied()
-            } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestBackgroundLocation.launch(
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 )
@@ -154,11 +164,19 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ), 0
+            )
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (ActivityCompat.checkSelfPermission(
                     this, Manifest.permission.ACCESS_FINE_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED
@@ -204,7 +222,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun hostGame() {
         var gameId: String
         while (true) {
-            gameId = List(6) { ('A'..'Z').random() }.joinToString("")
+            gameId = List(2) { ('A'..'Z').random() }.joinToString("")
             if (!gameDao.checkGameExists(gameId)) {
                 break
             }
@@ -228,6 +246,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        runnerDao.addGame(gameId)
+
         startLobbyActivity()
     }
 
@@ -250,10 +270,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun startLobbyActivity() {
         val intent = Intent(this, LobbyActivity::class.java)
-        CoroutineScope(Dispatchers.Main).launch {
-            startActivity(intent)
-            gameIdEditText.text.clear()
-            gameIdEditText.clearFocus()
-        }
+        startActivity(intent)
+    }
+
+    private fun startGameActivity() {
+        val intent = Intent(this, GameActivity::class.java)
+        startActivity(intent)
     }
 }
