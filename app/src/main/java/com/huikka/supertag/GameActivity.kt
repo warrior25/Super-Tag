@@ -9,6 +9,8 @@ import android.graphics.Paint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -99,6 +101,8 @@ class GameActivity : AppCompatActivity() {
                 Toast.makeText(this, "First button clicked", Toast.LENGTH_SHORT).show()
             }
         }
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
         chaserTimers = supportFragmentManager.findFragmentById(R.id.chaserTimers) as ChaserTimers
         runnerTimers = supportFragmentManager.findFragmentById(R.id.runnerTimers) as RunnerTimers
@@ -140,6 +144,22 @@ class GameActivity : AppCompatActivity() {
                 initChaserActions()
             }
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.game_toolbar_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val id: Int = item.itemId
+        if (id == R.id.info) {
+            Toast.makeText(this, "Info", Toast.LENGTH_SHORT).show()
+        }
+        if (id == R.id.leave_game) {
+            Toast.makeText(this, "Leave", Toast.LENGTH_SHORT).show()
+        }
+        return true
     }
 
     override fun onResume() {
