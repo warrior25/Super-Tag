@@ -26,22 +26,23 @@
         app:customStepSize="10"
         app:layout_constraintEnd_toStartOf="@+id/chaserCoins"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/head_start" />
+        app:layout_constraintTop_toBottomOf="@+id/headStart" />
 
     <com.huikka.supertag.CustomSlider
         android:id="@+id/playzone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
+        android:visibility="gone"
         app:customName="Playzone size"
+        app:customStepSize="100"
+        app:customValue="1000"
         app:customValueFrom="100"
         app:customValueTo="3000"
-        app:customValue="1000"
-        app:customStepSize="100"
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.huikka.supertag.CustomSlider
-        android:id="@+id/head_start"
+        android:id="@+id/headStart"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
@@ -50,5 +51,17 @@
         app:customValueTo="30"
         app:layout_constraintTop_toBottomOf="@+id/playzone"
         tools:layout_editor_absoluteX="1dp" />
+
+    <Button
+        android:id="@+id/saveButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="8dp"
+        android:text="@string/save"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/runnerCoins" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
