@@ -12,19 +12,20 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
+import com.huikka.supertag.data.dto.Card
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
 import com.huikka.supertag.data.helpers.Sides
@@ -51,6 +52,11 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 class GameActivity : AppCompatActivity() {
     private lateinit var map: MapView
+
+    private lateinit var myLocationOverlay: MyLocationNewOverlay
+
+    private var cards: ArrayList<Card> = ArrayList()
+    private lateinit var adapter: CardListAdapter
     private lateinit var playerId: String
     private lateinit var gameId: String
     private var isRunner = false
@@ -82,6 +88,17 @@ class GameActivity : AppCompatActivity() {
         getInstance().userAgentValue = applicationContext.packageName
         setContentView(R.layout.activity_game)
 
+        val view = LayoutInflater.from(this).inflate(R.layout.cards_sheet_layout, null)
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerview)
+        adapter = CardListAdapter(cards)
+        recyclerView.adapter = adapter
+
+        val locationButton = findViewById<ImageButton>(R.id.locationButton)
+        locationButton.setOnClickListener {
+            myLocationOverlay.enableFollowLocation()
+
+        }
+
         val app = application as STApplication
         authDao = AuthDao(app)
         gameDao = GameDao(app)
@@ -90,16 +107,13 @@ class GameActivity : AppCompatActivity() {
         zoneDao = ZoneDao(app)
 
         val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
-        cardsButton.setOnClickListener {
-            val bottomSheetDialog = BottomSheetDialog(this)
-            val view = LayoutInflater.from(this).inflate(R.layout.cards_sheet_layout, null)
-            bottomSheetDialog.setContentView(view)
-            bottomSheetDialog.show()
+        val bottomSheetDialog = BottomSheetDialog(this)
+        bottomSheetDialog.setContentView(view)
+        cards.add(Card("Card 1", "Test Card", 100, R.drawable.cards))
+        cards.add(Card("Card 2", "Second Card", 200, R.drawable.cards))
 
-            val buttonOne = view.findViewById<Button>(R.id.firstButton)
-            buttonOne.setOnClickListener {
-                Toast.makeText(this, "First button clicked", Toast.LENGTH_SHORT).show()
-            }
+        cardsButton.setOnClickListener {
+            bottomSheetDialog.show()
         }
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
@@ -313,7 +327,7 @@ class GameActivity : AppCompatActivity() {
     }
 
     private fun drawMyLocation() {
-        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), this.map)
+        myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), this.map)
         myLocationOverlay.enableMyLocation()
         myLocationOverlay.enableFollowLocation()
         myLocationOverlay.isDrawAccuracyEnabled = true
