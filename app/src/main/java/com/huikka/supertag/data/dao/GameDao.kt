@@ -196,6 +196,26 @@ class GameDao(application: STApplication) {
         return game.chaserMoney
     }
 
+    suspend fun changeSettings(
+        gameId: String, chaserMoney: Int, runnerMoney: Int, headStart: Int
+    ): Error? {
+        return try {
+            db.from("games").update({
+                set("chaser_money", chaserMoney)
+                set("runner_money", runnerMoney)
+                set("head_start", headStart)
+            }) {
+                filter {
+                    eq("id", gameId)
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e("changeSettings", e.toString())
+            Error(e)
+        }
+    }
+
     suspend fun getActiveRunnerZones(gameId: String): List<Int>? {
         return try {
             db.from("games").select(columns = Columns.list("active_runner_zones")) {
