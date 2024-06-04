@@ -7,104 +7,155 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
+import android.util.Log
+import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.huikka.supertag.data.helpers.GameStatuses
+import com.huikka.supertag.data.helpers.PermissionErrors
+import com.huikka.supertag.ui.components.FloatingActionButtonWithText
 import com.huikka.supertag.ui.login.LoginActivity
 import com.huikka.supertag.viewModels.MainMenuViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-    
-    private lateinit var joinGameButton: Button
-    private lateinit var hostGameButton: FloatingActionButton
-    private lateinit var gameIdEditText: EditText
-    private lateinit var permissionsError: TextView
-    private lateinit var fixPermissionsButton: Button
 
-    private val mmvm: MainMenuViewModel by viewModels { MainMenuViewModel.Factory }
+    private val viewModel: MainMenuViewModel by viewModels { MainMenuViewModel.Factory }
+
+    private lateinit var requestBackgroundLocation: ActivityResultLauncher<String>
+    private lateinit var requestFineLocation: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
-        // Setup button actions
-        joinGameButton = findViewById(R.id.joinGameButton)
-        gameIdEditText = findViewById(R.id.gameIdEditText)
-        joinGameButton.setOnClickListener {
-            lifecycleScope.launch {
-                val err = mmvm.joinGame(gameIdEditText.text.toString())
-                if (err != null) {
-                    Toast.makeText(
-                        applicationContext,
-                        "Game ${gameIdEditText.text} does not exist",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    return@launch
+        setContent {
+            if (viewModel.username == "") {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = stringResource(id = R.string.loading), fontSize = 22.sp)
                 }
-                startLobbyActivity()
+                return@setContent
+            }
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+            ) {
+                Text(text = viewModel.username, fontSize = 22.sp)
+                FilledTonalButton(onClick = {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        viewModel.logout()
+                        val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                        startActivity(intent)
+                    }
+                }) {
+                    Text(stringResource(id = R.string.logout))
+                }
+            }
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (viewModel.permissionErrorInfoTextId != null) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, true)
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = stringResource(id = viewModel.permissionErrorInfoTextId!!),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = {
+                            requestPermissions()
+                        }) {
+                            Text(stringResource(id = viewModel.permissionErrorButtonTextId!!))
+                        }
+                    }
+                    return@setContent
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f, true)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = viewModel.error, color = Color.Red)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextField(
+                        value = viewModel.gameId,
+                        onValueChange = { gameId -> viewModel.updateGameId(gameId) },
+                        label = { Text(stringResource(id = R.string.game_id)) },
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { lifecycleScope.launch(Dispatchers.IO) { viewModel.joinGame() } }) {
+                        Text(stringResource(id = R.string.join_game))
+                    }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    FloatingActionButtonWithText(icon = { Icon(Icons.Filled.Add, "Host game") },
+                        text = { Text(text = stringResource(id = R.string.host_game)) }) {
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            viewModel.hostGame()
+                            startLobbyActivity()
+                        }
+                    }
+                }
             }
         }
-
-        val logoutButton = findViewById<Button>(R.id.logoutButton)
-        logoutButton.setOnClickListener {
-            lifecycleScope.launch {
-                val err = mmvm.logout()
-                if (err != null) {
-                    Toast.makeText(
-                        applicationContext, "Failed to logout", Toast.LENGTH_LONG
-                    ).show()
-                    return@launch
-                }
-                val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                startActivity(intent)
-            }
-        }
-
-        hostGameButton = findViewById(R.id.hostGameButton)
-        hostGameButton.setOnClickListener {
-            lifecycleScope.launch {
-                val err = mmvm.hostGame()
-                if (err != null) {
-                    Toast.makeText(
-                        applicationContext, "Failed to host game", Toast.LENGTH_LONG
-                    ).show()
-                    return@launch
-                }
-                startLobbyActivity()
-            }
-        }
-
-        val loading = findViewById<ProgressBar>(R.id.loading)
 
         lifecycleScope.launch {
-            if (!mmvm.isLoggedIn()) {
+            if (!viewModel.isLoggedIn()) {
                 val intent = Intent(this@MainActivity, LoginActivity::class.java)
                 startActivity(intent)
                 finish()
                 return@launch
             }
 
-            val currentGameStatus = mmvm.getCurrentGameStatus()
+            viewModel.updateUsername()
+            val currentGameStatus = viewModel.getCurrentGameStatus()
             when (currentGameStatus) {
                 GameStatuses.LOBBY -> {
                     startLobbyActivity()
@@ -114,41 +165,9 @@ class MainActivity : AppCompatActivity() {
                     startGameActivity()
                 }
             }
-            loading.visibility = View.GONE
         }
 
-        permissionsError = findViewById(R.id.permissionsInfoText)
-        fixPermissionsButton = findViewById(R.id.fixPermissionsButton)
-        requestPermissions()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            if (ActivityCompat.checkSelfPermission(
-                    this, Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                showPermissionsError(false)
-            } else {
-                showPermissionsError(true)
-            }
-        } else {
-            if (ActivityCompat.checkSelfPermission(
-                    this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                showPermissionsError(false)
-            } else {
-                showPermissionsError(true)
-            }
-        }
-    }
-
-    private fun requestPermissions() {
-        var locationPermissionFailed = false
-
-        val requestBackgroundLocation = registerForActivityResult(
+        requestBackgroundLocation = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (!isGranted) {
@@ -157,15 +176,16 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                locationPermissionFailed = true
-                locationPermissionDenied()
+                viewModel.updatePermissionError(PermissionErrors.Denied)
+                Log.d("PERMISSIONS", "Denied background")
             } else {
-                showPermissionsError(false)
+                viewModel.updatePermissionError(null)
+                Log.d("PERMISSIONS", "Granted background")
             }
         }
 
 
-        val requestFineLocation = registerForActivityResult(
+        requestFineLocation = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (!isGranted) {
@@ -174,57 +194,70 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                locationPermissionFailed = true
-                locationPermissionDenied()
+                viewModel.updatePermissionError(PermissionErrors.Denied)
+                Log.d("PERMISSIONS", "Denied foreground")
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestBackgroundLocation.launch(
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 )
+                Log.d("PERMISSIONS", "Granted foreground")
             }
         }
+    }
 
-        fixPermissionsButton.setOnClickListener {
-            if (locationPermissionFailed) {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                val uri: Uri = Uri.fromParts("package", packageName, null)
-                intent.data = uri
-                startActivity(intent)
-            } else {
-                requestFineLocation.launch(
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )
-            }
-        }
+    override fun onResume() {
+        super.onResume()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // Request notification permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this, arrayOf(
                     Manifest.permission.POST_NOTIFICATIONS,
                 ), 0
             )
         }
-    }
 
-    private fun showPermissionsError(show: Boolean) {
-        if (show) {
-            hostGameButton.visibility = View.GONE
-            joinGameButton.visibility = View.GONE
-            gameIdEditText.visibility = View.GONE
-            permissionsError.visibility = View.VISIBLE
-            fixPermissionsButton.visibility = View.VISIBLE
-
+        // Check location permissions
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(
+                    this, Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                if (viewModel.permissionError == null) {
+                    viewModel.updatePermissionError(PermissionErrors.NotRequested)
+                }
+            } else {
+                viewModel.updatePermissionError(null)
+            }
         } else {
-            hostGameButton.visibility = View.VISIBLE
-            joinGameButton.visibility = View.VISIBLE
-            gameIdEditText.visibility = View.VISIBLE
-            permissionsError.visibility = View.GONE
-            fixPermissionsButton.visibility = View.GONE
+            if (ActivityCompat.checkSelfPermission(
+                    this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                if (viewModel.permissionError == null) {
+                    viewModel.updatePermissionError(PermissionErrors.NotRequested)
+                }
+            } else {
+                viewModel.updatePermissionError(null)
+            }
         }
     }
 
-    private fun locationPermissionDenied() {
-        fixPermissionsButton.text = getText(R.string.open_settings)
-        permissionsError.text = getText(R.string.permissions_denied)
+    private fun requestPermissions() {
+
+        if (viewModel.permissionError == PermissionErrors.Denied) {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            val uri: Uri = Uri.fromParts("package", packageName, null)
+            intent.data = uri
+            startActivity(intent)
+        } else {
+            requestFineLocation.launch(
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        }
     }
 
     private fun startLobbyActivity() {

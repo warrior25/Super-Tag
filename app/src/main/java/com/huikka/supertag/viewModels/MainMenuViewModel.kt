@@ -1,16 +1,21 @@
 package com.huikka.supertag.viewModels
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.huikka.supertag.R
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dto.Game
+import com.huikka.supertag.data.helpers.PermissionErrors
 
 class MainMenuViewModel(
     private val authDao: AuthDao,
@@ -19,35 +24,81 @@ class MainMenuViewModel(
     private val runnerDao: RunnerDao,
 ) : ViewModel() {
 
+    var gameId by mutableStateOf("")
+        private set
+
+    var username by mutableStateOf("")
+        private set
+
+    var error by mutableStateOf("")
+        private set
+
+    var permissionErrorButtonTextId by mutableStateOf<Int?>(null)
+        private set
+
+    var permissionErrorInfoTextId by mutableStateOf<Int?>(null)
+        private set
+
+    var permissionError by mutableStateOf<PermissionErrors?>(null)
+
+    fun updateGameId(input: String) {
+        gameId = input
+    }
+
+    suspend fun updateUsername() {
+        val playerId = getPlayerId()
+        if (playerId != null) {
+            username = playerDao.getPlayerById(playerId)!!.name ?: ""
+        }
+    }
+
+    fun updatePermissionError(error: PermissionErrors?) {
+        permissionError = error
+        when (error) {
+            PermissionErrors.NotRequested -> {
+                permissionErrorInfoTextId = R.string.insufficient_permissions
+                permissionErrorButtonTextId = R.string.fix_now
+            }
+
+            PermissionErrors.Denied -> {
+                permissionErrorInfoTextId = R.string.permissions_denied
+                permissionErrorButtonTextId = R.string.open_settings
+            }
+
+            else -> {
+                permissionErrorInfoTextId = null
+                permissionErrorButtonTextId = null
+            }
+        }
+    }
+
     private suspend fun getPlayerId(): String? {
         authDao.awaitCurrentSession()
         return authDao.getUser()?.id
     }
 
-    suspend fun joinGame(gameId: String): Error? {
+    suspend fun joinGame() {
         val playerId = getPlayerId()
-        return try {
+        try {
             playerDao.addToGame(
                 playerId!!, gameId
             )
-            null
         } catch (e: Exception) {
             Log.e("MainMenuViewModel", "Failed to join game: $e")
-            Error(e)
+            error = "Game not found"
         }
     }
 
-    suspend fun logout(): Error? {
-        return try {
+    suspend fun logout() {
+        try {
             authDao.logout()
-            null
         } catch (e: Exception) {
             Log.e("MainMenuViewModel", "Failed to logout: $e")
-            Error(e)
+            error = "Failed to logout"
         }
     }
 
-    suspend fun hostGame(): Error? {
+    suspend fun hostGame() {
         var gameId: String
         while (true) {
             gameId = List(2) { ('A'..'Z').random() }.joinToString("")
@@ -66,9 +117,8 @@ class MainMenuViewModel(
             runnerDao.addGame(gameId)
         } catch (e: Exception) {
             Log.e("MainMenuViewModel", "Failed to host game: $e")
-            return Error(e)
+            error = "Failed to host game"
         }
-        return null
     }
 
     suspend fun isLoggedIn(): Boolean {
