@@ -83,13 +83,8 @@ class GameDao(application: STApplication) {
         }
     }
 
-    suspend fun createGame(game: Game): Error? {
-        try {
-            db.from("games").insert(game)
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
+    suspend fun createGame(game: Game) {
+        db.from("games").insert(game)
     }
 
     suspend fun removeGame(id: String): Error? {
@@ -111,21 +106,6 @@ class GameDao(application: STApplication) {
                 eq("id", userId)
             }
         }.decodeSingle<CurrentGame>()
-    }
-
-    suspend fun setHeadStart(gameId: String, headStart: Int): Error? {
-        return try {
-            db.from("games").update({
-                set("head_start", headStart)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
-            }
-            null
-        } catch (e: Exception) {
-            Error(e)
-        }
     }
 
     suspend fun getHeadStart(gameId: String): Int? {

@@ -65,20 +65,15 @@ class PlayerDao(application: STApplication) {
         }
     }
 
-    suspend fun addToGame(playerId: String, gameId: String, isHost: Boolean = false): Error? {
-        try {
-            db.from("players").update({
-                set("game_id", gameId)
-                set("is_host", isHost)
-            }) {
-                filter {
-                    eq("id", playerId)
-                }
+    suspend fun addToGame(playerId: String, gameId: String, isHost: Boolean = false) {
+        db.from("players").update({
+            set("game_id", gameId)
+            set("is_host", isHost)
+        }) {
+            filter {
+                eq("id", playerId)
             }
-        } catch (e: Exception) {
-            return Error(e)
         }
-        return null
     }
 
     suspend fun removeFromGame(id: String): Error? {

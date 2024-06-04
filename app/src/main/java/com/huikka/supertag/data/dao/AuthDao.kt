@@ -38,13 +38,8 @@ class AuthDao(application: STApplication) {
         }
     }
 
-    suspend fun logout(): Boolean {
-        return try {
-            auth.signOut()
-            true
-        } catch (e: Exception) {
-            false
-        }
+    suspend fun logout() {
+        auth.signOut()
     }
 
     suspend fun register(email: String, password: String, nickname: String): Boolean {
