@@ -13,6 +13,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.ImageButton
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -106,14 +107,13 @@ class GameActivity : AppCompatActivity() {
         zoneDao = ZoneDao(app)
 
         val cardsButton = findViewById<ImageButton>(R.id.cardsButton)
+        val bottomSheetDialog = BottomSheetDialog(this)
+        bottomSheetDialog.setContentView(view)
+        cards.add(Card("Card 1", "Test Card", 100, R.drawable.cards))
+        cards.add(Card("Card 2", "Second Card", 200, R.drawable.cards))
+
         cardsButton.setOnClickListener {
-            val bottomSheetDialog = BottomSheetDialog(this)
-            bottomSheetDialog.setContentView(view)
             bottomSheetDialog.show()
-
-            cards.add(Card("Card 1", "Test Card", 100, R.drawable.cards))
-            cards.add(Card("Card 2", "Second Card", 200, R.drawable.cards))
-
         }
         val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
