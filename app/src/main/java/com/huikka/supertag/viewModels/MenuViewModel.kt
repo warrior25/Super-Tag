@@ -15,9 +15,11 @@ import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dto.Game
+import com.huikka.supertag.data.dto.Player
+import com.huikka.supertag.data.helpers.GameStatuses
 import com.huikka.supertag.data.helpers.PermissionErrors
 
-class MainMenuViewModel(
+class MenuViewModel(
     private val authDao: AuthDao,
     private val gameDao: GameDao,
     private val playerDao: PlayerDao,
@@ -27,7 +29,19 @@ class MainMenuViewModel(
     var gameId by mutableStateOf("")
         private set
 
+    var gameStatus by mutableStateOf<String?>(null)
+        private set
+
     var username by mutableStateOf("")
+        private set
+
+    var players by mutableStateOf<List<Player>>(listOf())
+        private set
+
+    var isHost by mutableStateOf(false)
+        private set
+
+    var game by mutableStateOf<Game?>(null)
         private set
 
     var error by mutableStateOf("")
@@ -83,8 +97,9 @@ class MainMenuViewModel(
             playerDao.addToGame(
                 playerId!!, gameId
             )
+            gameStatus = GameStatuses.LOBBY
         } catch (e: Exception) {
-            Log.e("MainMenuViewModel", "Failed to join game: $e")
+            Log.e("MenuViewModel", "Failed to join game: $e")
             error = "Game not found"
         }
     }
@@ -93,16 +108,16 @@ class MainMenuViewModel(
         try {
             authDao.logout()
         } catch (e: Exception) {
-            Log.e("MainMenuViewModel", "Failed to logout: $e")
+            Log.e("MenuViewModel", "Failed to logout: $e")
             error = "Failed to logout"
         }
     }
 
     suspend fun hostGame() {
-        var gameId: String
+        var newId: String
         while (true) {
-            gameId = List(2) { ('A'..'Z').random() }.joinToString("")
-            if (!gameDao.checkGameExists(gameId)) {
+            newId = List(6) { ('A'..'Z').random() }.joinToString("")
+            if (!gameDao.checkGameExists(newId)) {
                 break
             }
         }
@@ -110,13 +125,16 @@ class MainMenuViewModel(
         try {
             gameDao.createGame(
                 Game(
-                    gameId, "lobby"
+                    id = newId, status = GameStatuses.LOBBY, runnerId = getPlayerId()
                 )
             )
-            playerDao.addToGame(getPlayerId()!!, gameId, true)
-            runnerDao.addGame(gameId)
+            playerDao.addToGame(getPlayerId()!!, newId, true)
+            runnerDao.addGame(newId)
+            gameStatus = GameStatuses.LOBBY
+            gameId = newId
+            isHost = true
         } catch (e: Exception) {
-            Log.e("MainMenuViewModel", "Failed to host game: $e")
+            Log.e("MenuViewModel", "Failed to host game: $e")
             error = "Failed to host game"
         }
     }
@@ -125,14 +143,78 @@ class MainMenuViewModel(
         return getPlayerId() != null
     }
 
-    suspend fun getCurrentGameStatus(): String? {
+    suspend fun getGameStatus() {
+        try {
+            val playerId = getPlayerId()!!
+            val player = playerDao.getPlayerById(playerId)!!
+            if (player.gameId == null) {
+                gameId = ""
+                gameStatus = null
+                return
+            }
+            gameId = player.gameId
+            gameStatus = gameDao.getGameStatus(gameId)
+            isHost = player.isHost!!
+        } catch (e: Exception) {
+            Log.e("MenuViewModel", "Failed to get current game info: $e")
+            error = "Failed to get current game status"
+        }
+    }
+
+    suspend fun setGameStatus(status: String) {
         try {
             val playerId = getPlayerId()!!
             val gameId = playerDao.getPlayerById(playerId)!!.gameId
-            return gameDao.getGameStatus(gameId!!)
+            gameDao.setGameStatus(gameId!!, status)
+            gameStatus = status
         } catch (e: Exception) {
-            Log.e("MainMenuViewModel", "Failed to get current game info: $e")
-            return null
+            Log.e("MenuViewModel", "Failed to get current game info: $e")
+            error = "Failed to set new game status"
+        }
+    }
+
+    suspend fun getPlayers() {
+        try {
+            val flow = playerDao.getPlayersByGameIdFlow(gameId)
+            flow.collect {
+                players = it
+                Log.d("PLAYERS", players.toString())
+            }
+        } catch (e: Exception) {
+            Log.e("MenuViewModel", "Failed to get players: $e")
+            error = "Failed to get players"
+        }
+    }
+
+    suspend fun getGameData() {
+        try {
+            val flow = gameDao.getGameFlow(gameId)
+            flow.collect {
+                game = it
+            }
+        } catch (e: Exception) {
+            Log.e("MenuViewModel", "Failed to get game data: $e")
+            error = "Failed to get game data"
+        }
+    }
+
+    suspend fun setRunner(runnerId: String) {
+        try {
+            gameDao.setRunnerId(gameId, runnerId)
+        } catch (e: Exception) {
+            Log.e("MenuViewModel", "Failed to set runner: $e")
+            error = "Failed to set runner"
+        }
+    }
+
+    suspend fun leaveGame() {
+        try {
+            playerDao.removeFromGame(getPlayerId()!!)
+            gameStatus = null
+            gameId = ""
+        } catch (e: Exception) {
+            Log.e("MenuViewModel", "Failed to leave game: $e")
+            error = "Failed to leave game"
         }
     }
 
@@ -144,7 +226,7 @@ class MainMenuViewModel(
                 val application = checkNotNull(extras[APPLICATION_KEY])
                 val myApp = application as STApplication
 
-                return MainMenuViewModel(
+                return MenuViewModel(
                     myApp.authDao, myApp.gameDao, myApp.playerDao, myApp.runnerDao
                 ) as T
             }

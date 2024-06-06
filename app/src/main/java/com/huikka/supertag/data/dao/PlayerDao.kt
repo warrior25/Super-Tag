@@ -76,17 +76,12 @@ class PlayerDao(application: STApplication) {
         }
     }
 
-    suspend fun removeFromGame(id: String): Error? {
-        try {
-            db.from("players").update({ setToNull("game_id") }) {
-                filter {
-                    eq("id", id)
-                }
+    suspend fun removeFromGame(id: String) {
+        db.from("players").update({ setToNull("game_id") }) {
+            filter {
+                eq("id", id)
             }
-        } catch (e: Exception) {
-            return Error(e)
         }
-        return null
     }
 
     suspend fun getPlayerById(id: String): Player? {

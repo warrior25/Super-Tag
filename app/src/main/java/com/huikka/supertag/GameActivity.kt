@@ -140,6 +140,7 @@ class GameActivity : AppCompatActivity() {
         map.overlays.add(cr)
 
         lifecycleScope.launch(Dispatchers.IO) {
+            authDao.awaitCurrentSession()
             playerId = authDao.getUser()!!.id
             gameId = gameDao.getCurrentGameInfo(playerId).gameId!!
             runnerId = gameDao.getRunnerId(gameId)!!
@@ -478,7 +479,8 @@ class GameActivity : AppCompatActivity() {
             items.add(overlayItem)
         }
 
-        val overlay = ItemizedIconOverlay(this,
+        val overlay = ItemizedIconOverlay(
+            this,
             items,
             object : ItemizedIconOverlay.OnItemGestureListener<OverlayItem> {
                 override fun onItemSingleTapUp(index: Int, item: OverlayItem?): Boolean {
