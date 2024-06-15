@@ -3,26 +3,41 @@ package com.huikka.supertag.data.dao
 import android.util.Log
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.Player
+import com.huikka.supertag.data.helpers.Message
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.filter.FilterOperation
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
+import io.github.jan.supabase.realtime.broadcastFlow
+import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.selectAsFlow
 import io.github.jan.supabase.realtime.selectSingleValueAsFlow
 import kotlinx.coroutines.flow.Flow
 import java.sql.SQLException
 
 class PlayerDao(application: STApplication) {
+    private val supabase = application.supabase
     private val db: Postgrest = application.supabase.postgrest
 
     @OptIn(SupabaseExperimental::class)
     fun getPlayersByGameIdFlow(gameId: String): Flow<List<Player>> {
         return db.from("players").selectAsFlow(
-            Player::id, filter = FilterOperation("game_id", FilterOperator.EQ, gameId)
+            Player::id, filter = FilterOperation(
+                "game_id", FilterOperator.IN, gameId
+            )
         )
     }
+
+    suspend fun getPlayerLeaveFlow(gameId: String): Flow<Message> {
+        val channel = supabase.channel(gameId)
+        val broadcastFlow = channel.broadcastFlow<Message>(event = "message")
+
+        channel.subscribe(blockUntilSubscribed = true)
+        return broadcastFlow
+    }
+
 
     @OptIn(SupabaseExperimental::class)
     fun getPlayerByIdFlow(id: String): Flow<Player> {
