@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.huikka.supertag.ui.screens.LobbyScreen
 import com.huikka.supertag.ui.screens.MainScreen
 import com.huikka.supertag.viewModels.LobbyViewModel
@@ -23,8 +24,14 @@ fun Navigation(mainViewModel: MainViewModel, lobbyViewModel: LobbyViewModel) {
             )
         }
         composable<LobbyRoute> {
+            val args = it.toRoute<LobbyRoute>()
             val state by lobbyViewModel.state.collectAsState()
-            LobbyScreen(state = state, onEvent = lobbyViewModel::onEvent)
+            LobbyScreen(
+                navController = navController,
+                gameId = args.gameId,
+                state = state,
+                onEvent = lobbyViewModel::onEvent
+            )
         }
     }
 }
@@ -33,4 +40,6 @@ fun Navigation(mainViewModel: MainViewModel, lobbyViewModel: LobbyViewModel) {
 object MainScreenRoute
 
 @Serializable
-object LobbyRoute
+data class LobbyRoute(
+    val gameId: String
+)

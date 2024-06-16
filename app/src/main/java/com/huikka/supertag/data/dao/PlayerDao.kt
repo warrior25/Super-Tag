@@ -25,7 +25,7 @@ class PlayerDao(application: STApplication) {
     fun getPlayersByGameIdFlow(gameId: String): Flow<List<Player>> {
         return db.from("players").selectAsFlow(
             Player::id, filter = FilterOperation(
-                "game_id", FilterOperator.IN, gameId
+                "game_id", FilterOperator.EQ, gameId
             )
         )
     }

@@ -1,5 +1,6 @@
 package com.huikka.supertag.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,10 +17,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.huikka.supertag.R
 import com.huikka.supertag.ui.components.LobbyActionButtons
 import com.huikka.supertag.ui.components.PlayerListItem
@@ -29,7 +32,12 @@ import com.huikka.supertag.ui.state.LobbyState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LobbyScreen(state: LobbyState, onEvent: (LobbyEvent) -> Unit) {
+fun LobbyScreen(
+    navController: NavController, gameId: String, state: LobbyState, onEvent: (LobbyEvent) -> Unit
+) {
+    LaunchedEffect(true) {
+        onEvent(LobbyEvent.OnInit(gameId))
+    }
     Scaffold(
         topBar = {
             TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
@@ -38,8 +46,10 @@ fun LobbyScreen(state: LobbyState, onEvent: (LobbyEvent) -> Unit) {
             ), title = {
                 Text(state.gameId)
             }, actions = {
-                LobbyActionButtons({ onEvent(LobbyEvent.OnLeaveGameClick) },
-                    { /*startSettingsActivity()*/ })
+                LobbyActionButtons({
+                    onEvent(LobbyEvent.OnLeaveGameClick)
+                    navController.navigateUp()
+                }, { /*TODO: Navigate to settings screen*/ })
             })
         },
     ) { padding ->
@@ -60,6 +70,7 @@ fun LobbyScreen(state: LobbyState, onEvent: (LobbyEvent) -> Unit) {
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(state.players) { player ->
+                        Log.d("PLAYER_LIST", player.toString())
                         PlayerListItem(
                             player = player, isRunner = player.id == state.game!!.runnerId
                         ) {
@@ -81,7 +92,7 @@ fun LobbyScreen(state: LobbyState, onEvent: (LobbyEvent) -> Unit) {
                 ) {
                     Button(onClick = {
                         onEvent(LobbyEvent.OnStartGameClick)
-                        //startGameActivity()
+                        // TODO: Navigate to game screen
                     }) {
                         Text(stringResource(id = R.string.start_game))
                     }

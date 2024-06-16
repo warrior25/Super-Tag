@@ -191,11 +191,16 @@ class MainViewModel(
                 val playerId = getPlayerId()!!
                 val player = playerDao.getPlayerById(playerId)!!
                 if (player.gameId == null) {
+                    _state.update {
+                        it.copy(
+                            gameId = "", gameStatus = null
+                        )
+                    }
                     return@launch
                 }
                 _state.update {
                     it.copy(
-                        gameStatus = gameDao.getGameStatus(player.gameId)
+                        gameId = player.gameId, gameStatus = gameDao.getGameStatus(player.gameId)
                     )
                 }
             } catch (e: Exception) {

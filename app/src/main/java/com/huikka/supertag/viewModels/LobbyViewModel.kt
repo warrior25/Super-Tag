@@ -28,9 +28,21 @@ class LobbyViewModel(
     fun onEvent(event: LobbyEvent) {
         when (event) {
             is LobbyEvent.OnLeaveGameClick -> leaveGame()
-            is LobbyEvent.OnStartGameClick -> updateGameStatus(GameStatuses.PLAYING)
+            is LobbyEvent.OnStartGameClick -> startGame()
             is LobbyEvent.OnRunnerChange -> setRunner(event.runnerId)
+            is LobbyEvent.OnInit -> initData(event.gameId)
         }
+    }
+
+    private fun initData(gameId: String) {
+        _state.update {
+            it.copy(
+                gameId = gameId
+            )
+        }
+        getHostStatus()
+        getPlayers()
+        getGameData()
     }
 
     private suspend fun getPlayerId(): String? {
@@ -38,22 +50,14 @@ class LobbyViewModel(
         return authDao.getUser()?.id
     }
 
-    fun getGameStatus() {
+    private fun getHostStatus() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val playerId = getPlayerId()!!
                 val player = playerDao.getPlayerById(playerId)!!
-                if (player.gameId == null) {
-                    _state.update {
-                        it.copy(
-                            gameId = ""
-                        )
-                    }
-                    return@launch
-                }
                 _state.update {
                     it.copy(
-                        gameId = player.gameId, isHost = player.isHost!!
+                        isHost = player.isHost!!
                     )
                 }
             } catch (e: Exception) {
@@ -67,12 +71,10 @@ class LobbyViewModel(
         }
     }
 
-    private fun updateGameStatus(status: String) {
+    private fun startGame() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val playerId = getPlayerId()!!
-                val gameId = playerDao.getPlayerById(playerId)!!.gameId
-                gameDao.setGameStatus(gameId!!, status)
+                gameDao.setGameStatus(state.value.gameId, GameStatuses.PLAYING)
             } catch (e: Exception) {
                 Log.e("LobbyViewModel", "Failed to get current game info: $e")
                 _state.update {
@@ -84,7 +86,7 @@ class LobbyViewModel(
         }
     }
 
-    fun getPlayers() {
+    private fun getPlayers() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val flow = playerDao.getPlayersByGameIdFlow(state.value.gameId)
@@ -107,7 +109,7 @@ class LobbyViewModel(
         }
     }
 
-    fun getGameData() {
+    private fun getGameData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val flow = gameDao.getGameFlow(state.value.gameId)
