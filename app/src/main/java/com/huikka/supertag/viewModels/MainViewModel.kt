@@ -35,7 +35,6 @@ class MainViewModel(
 
     fun onEvent(event: MainEvent) {
         when (event) {
-            is MainEvent.OnLogoutClick -> logout()
             is MainEvent.OnHostGameClick -> hostGame()
             is MainEvent.OnJoinGameClick -> joinGame()
             is MainEvent.OnGameIdChange -> updateGameId(event.gameId)
@@ -132,21 +131,6 @@ class MainViewModel(
         }
     }
 
-    private fun logout() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                authDao.logout()
-            } catch (e: Exception) {
-                Log.e("MainViewModel", "Failed to logout: $e")
-                _state.update {
-                    it.copy(
-                        error = "Failed to logout"
-                    )
-                }
-            }
-        }
-    }
-
     private fun hostGame() {
         viewModelScope.launch(Dispatchers.IO) {
             var newId: String
@@ -179,10 +163,6 @@ class MainViewModel(
                 }
             }
         }
-    }
-
-    suspend fun isLoggedIn(): Boolean {
-        return getPlayerId() != null
     }
 
     private fun getGameStatus() {

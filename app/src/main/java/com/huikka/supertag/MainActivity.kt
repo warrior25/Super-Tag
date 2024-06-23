@@ -1,7 +1,6 @@
 package com.huikka.supertag
 
 import android.Manifest
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -10,18 +9,17 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.huikka.supertag.data.helpers.PermissionErrors
 import com.huikka.supertag.ui.Navigation
-import com.huikka.supertag.ui.login.LoginActivity
 import com.huikka.supertag.viewModels.LobbyViewModel
+import com.huikka.supertag.viewModels.LoginViewModel
 import com.huikka.supertag.viewModels.MainViewModel
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private val mainViewModel: MainViewModel by viewModels { MainViewModel.Factory }
     private val lobbyViewModel: LobbyViewModel by viewModels { LobbyViewModel.Factory }
+    private val loginViewModel: LoginViewModel by viewModels { LoginViewModel.Factory }
 
     private lateinit var requestBackgroundLocation: ActivityResultLauncher<String>
     private lateinit var requestFineLocation: ActivityResultLauncher<String>
@@ -30,15 +28,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            Navigation(mainViewModel, lobbyViewModel)
-        }
-
-        lifecycleScope.launch {
-            if (!mainViewModel.isLoggedIn()) {
-                val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                startActivity(intent)
-                finish()
-            }
+            Navigation(
+                mainViewModel = mainViewModel,
+                loginViewModel = loginViewModel,
+                lobbyViewModel = lobbyViewModel
+            )
         }
 
         requestBackgroundLocation = registerForActivityResult(

@@ -1,6 +1,5 @@
 package com.huikka.supertag.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +31,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.GameStatuses
-import com.huikka.supertag.ui.LobbyRoute
+import com.huikka.supertag.ui.LobbyScreenRoute
+import com.huikka.supertag.ui.LoginScreenRoute
 import com.huikka.supertag.ui.components.FloatingActionButtonWithText
 import com.huikka.supertag.ui.events.MainEvent
 import com.huikka.supertag.ui.state.MainState
@@ -48,7 +48,6 @@ fun MainScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 // This is triggered when the screen is navigated back to
-                Log.d("LifecycleEventObserver", "ON_RESUME")
                 onEvent(MainEvent.OnInit)
             }
         }
@@ -62,7 +61,7 @@ fun MainScreen(
     LaunchedEffect(state.gameStatus) {
         when (state.gameStatus) {
             GameStatuses.LOBBY -> {
-                navController.navigate(LobbyRoute(state.gameId))
+                navController.navigate(LobbyScreenRoute(state.gameId))
             }
 
             GameStatuses.PLAYING -> {
@@ -71,16 +70,6 @@ fun MainScreen(
         }
     }
 
-    if (state.username == "") {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = stringResource(id = R.string.loading), fontSize = 22.sp)
-        }
-        return
-    }
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -90,8 +79,7 @@ fun MainScreen(
     ) {
         Text(text = state.username, fontSize = 22.sp)
         FilledTonalButton(onClick = {
-            onEvent(MainEvent.OnLogoutClick)
-            // TODO: Navigate to login screen
+            navController.navigate(LoginScreenRoute(logout = true))
         }) {
             Text(stringResource(id = R.string.logout))
         }

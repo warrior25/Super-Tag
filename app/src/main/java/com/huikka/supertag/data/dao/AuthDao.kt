@@ -26,15 +26,10 @@ class AuthDao(application: STApplication) {
         return auth.currentUserOrNull()
     }
 
-    suspend fun login(email: String, password: String): Boolean {
-        return try {
-            auth.signInWith(Email) {
-                this.email = email
-                this.password = password
-            }
-            true
-        } catch (e: Exception) {
-            false
+    suspend fun login(email: String, password: String) {
+        auth.signInWith(Email) {
+            this.email = email
+            this.password = password
         }
     }
 
@@ -42,20 +37,15 @@ class AuthDao(application: STApplication) {
         auth.signOut()
     }
 
-    suspend fun register(email: String, password: String, nickname: String): Boolean {
-        return try {
-            auth.signUpWith(Email) {
-                this.email = email
-                this.password = password
-                data = buildJsonObject {
-                    put("nickname", nickname)
-                }
+    suspend fun register(email: String, password: String, nickname: String) {
+        auth.signUpWith(Email) {
+            this.email = email
+            this.password = password
+            data = buildJsonObject {
+                put("nickname", nickname)
             }
-            addPlayerToDatabase()
-            true
-        } catch (e: Exception) {
-            false
         }
+        addPlayerToDatabase()
     }
 
     private suspend fun addPlayerToDatabase() {
