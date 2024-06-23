@@ -27,6 +27,7 @@ import com.huikka.supertag.R
 import com.huikka.supertag.ui.components.SettingsSlider
 import com.huikka.supertag.ui.events.LobbySettingsEvent
 import com.huikka.supertag.ui.state.LobbySettingsState
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,13 +64,27 @@ fun LobbySettingsScreen(
                 IconButton(onClick = {
                     onEvent(
                         LobbySettingsEvent.OnSettingsReset(
+                            Random.nextInt(1, 30),
+                            Random.nextInt(0, 300),
+                            Random.nextInt(0, 300)
+                        )
+                    )
+                }) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.dice),
+                        contentDescription = "Randomize"
+                    )
+                }
+                IconButton(onClick = {
+                    onEvent(
+                        LobbySettingsEvent.OnSettingsReset(
                             headStart, runnerMoney, chaserMoney
                         )
                     )
                 }) {
                     Icon(
                         imageVector = ImageVector.vectorResource(id = R.drawable.baseline_restart_alt_24),
-                        contentDescription = "Back"
+                        contentDescription = "Reset"
                     )
                 }
             })
