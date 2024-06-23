@@ -16,7 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,9 +24,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.GameStatuses
@@ -43,25 +39,18 @@ fun MainScreen(
     state: MainState,
     onEvent: (MainEvent) -> Unit,
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                // This is triggered when the screen is navigated back to
-                onEvent(MainEvent.OnInit)
-            }
-        }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+    LaunchedEffect(Unit) {
+        onEvent(MainEvent.OnInit)
     }
-    LaunchedEffect(state.gameStatus) {
+
+    LaunchedEffect(state.isInitialized, state.gameStatus) {
+        if (!state.isInitialized) {
+            return@LaunchedEffect
+        }
         when (state.gameStatus) {
             GameStatuses.LOBBY -> {
                 navController.navigate(LobbyScreenRoute(state.gameId))
+                onEvent(MainEvent.OnNavigateAway)
             }
 
             GameStatuses.PLAYING -> {
@@ -80,6 +69,7 @@ fun MainScreen(
         Text(text = state.username, fontSize = 22.sp)
         FilledTonalButton(onClick = {
             navController.navigate(LoginScreenRoute(logout = true))
+            onEvent(MainEvent.OnNavigateAway)
         }) {
             Text(stringResource(id = R.string.logout))
         }

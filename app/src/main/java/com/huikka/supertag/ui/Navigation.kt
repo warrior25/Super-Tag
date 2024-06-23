@@ -8,8 +8,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.huikka.supertag.ui.screens.LobbyScreen
+import com.huikka.supertag.ui.screens.LobbySettingsScreen
 import com.huikka.supertag.ui.screens.LoginScreen
 import com.huikka.supertag.ui.screens.MainScreen
+import com.huikka.supertag.viewModels.LobbySettingsViewModel
 import com.huikka.supertag.viewModels.LobbyViewModel
 import com.huikka.supertag.viewModels.LoginViewModel
 import com.huikka.supertag.viewModels.MainViewModel
@@ -17,7 +19,10 @@ import kotlinx.serialization.Serializable
 
 @Composable
 fun Navigation(
-    mainViewModel: MainViewModel, lobbyViewModel: LobbyViewModel, loginViewModel: LoginViewModel
+    mainViewModel: MainViewModel,
+    lobbyViewModel: LobbyViewModel,
+    lobbySettingsViewModel: LobbySettingsViewModel,
+    loginViewModel: LoginViewModel
 ) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = LoginScreenRoute()) {
@@ -47,6 +52,19 @@ fun Navigation(
                 onEvent = lobbyViewModel::onEvent
             )
         }
+        composable<LobbySettingsScreenRoute> {
+            val args = it.toRoute<LobbySettingsScreenRoute>()
+            val state by lobbySettingsViewModel.state.collectAsState()
+            LobbySettingsScreen(
+                navController = navController,
+                gameId = args.gameId,
+                headStart = args.headStart,
+                runnerMoney = args.runnerMoney,
+                chaserMoney = args.chaserMoney,
+                state = state,
+                onEvent = lobbySettingsViewModel::onEvent
+            )
+        }
     }
 }
 
@@ -61,4 +79,9 @@ object MainScreenRoute
 @Serializable
 data class LobbyScreenRoute(
     val gameId: String
+)
+
+@Serializable
+data class LobbySettingsScreenRoute(
+    val gameId: String, val headStart: Int, val runnerMoney: Int, val chaserMoney: Int
 )

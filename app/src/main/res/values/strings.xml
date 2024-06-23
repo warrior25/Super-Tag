@@ -38,9 +38,14 @@
     <string name="cardsButton">button_to_show_cards</string>
     <string name="info">Info</string>
     <string name="pick_random">Pick random runner</string>
-    <string name="settings">Settings</string>
+    <string name="game_settings">Game settings</string>
     <string name="save">Save</string>
     <string name="host_game">Host game</string>
     <string name="loading">Loading…</string>
     <string name="empty" />
+    <string name="head_start">Head start</string>
+    <string name="runner_money">Runner money</string>
+    <string name="chaser_money">Chaser money</string>
+    <string name="minutes">min</string>
+    <string name="currency">$</string>
 </resources>

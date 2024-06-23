@@ -9,4 +9,5 @@ data class LobbyState(
     val isHost: Boolean = false,
     val game: Game? = null,
     val error: String = "",
+    val isInitialized: Boolean = false
 )

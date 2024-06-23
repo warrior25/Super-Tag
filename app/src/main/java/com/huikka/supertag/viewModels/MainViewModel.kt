@@ -18,6 +18,7 @@ import com.huikka.supertag.data.helpers.PermissionErrors
 import com.huikka.supertag.ui.events.MainEvent
 import com.huikka.supertag.ui.state.MainState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -39,6 +40,15 @@ class MainViewModel(
             is MainEvent.OnJoinGameClick -> joinGame()
             is MainEvent.OnGameIdChange -> updateGameId(event.gameId)
             is MainEvent.OnInit -> initData()
+            is MainEvent.OnNavigateAway -> resetIsInitialized()
+        }
+    }
+
+    private fun resetIsInitialized() {
+        _state.update {
+            it.copy(
+                isInitialized = false
+            )
         }
     }
 
@@ -51,19 +61,24 @@ class MainViewModel(
     }
 
     private fun initData() {
-        updateUsername()
-        getGameStatus()
+        viewModelScope.launch(Dispatchers.IO) {
+            getUsername()
+            getGameStatus()
+            _state.update {
+                it.copy(
+                    isInitialized = true
+                )
+            }
+        }
     }
 
-    private fun updateUsername() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val playerId = getPlayerId()
-            if (playerId != null) {
-                _state.update {
-                    it.copy(
-                        username = playerDao.getPlayerById(playerId)!!.name ?: ""
-                    )
-                }
+    private suspend fun getUsername() {
+        val playerId = getPlayerId()
+        if (playerId != null) {
+            _state.update {
+                it.copy(
+                    username = playerDao.getPlayerById(playerId)!!.name ?: ""
+                )
             }
         }
     }
@@ -120,6 +135,12 @@ class MainViewModel(
                         gameStatus = GameStatuses.LOBBY
                     )
                 }
+                delay(1000)
+                _state.update {
+                    it.copy(
+                        isInitialized = false
+                    )
+                }
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Failed to join game: $e")
                 _state.update {
@@ -151,7 +172,13 @@ class MainViewModel(
                 runnerDao.addGame(newId)
                 _state.update {
                     it.copy(
-                        gameStatus = GameStatuses.LOBBY
+                        gameStatus = GameStatuses.LOBBY, gameId = newId
+                    )
+                }
+                delay(1000)
+                _state.update {
+                    it.copy(
+                        isInitialized = false
                     )
                 }
             } catch (e: Exception) {
@@ -165,31 +192,29 @@ class MainViewModel(
         }
     }
 
-    private fun getGameStatus() {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val playerId = getPlayerId()!!
-                val player = playerDao.getPlayerById(playerId)!!
-                if (player.gameId == null) {
-                    _state.update {
-                        it.copy(
-                            gameId = "", gameStatus = null
-                        )
-                    }
-                    return@launch
-                }
+    private suspend fun getGameStatus() {
+        try {
+            val playerId = getPlayerId()!!
+            val player = playerDao.getPlayerById(playerId)!!
+            if (player.gameId == null) {
                 _state.update {
                     it.copy(
-                        gameId = player.gameId, gameStatus = gameDao.getGameStatus(player.gameId)
+                        gameId = "", gameStatus = null
                     )
                 }
-            } catch (e: Exception) {
-                Log.e("LobbyViewModel", "Failed to get current game info: $e")
-                _state.update {
-                    it.copy(
-                        error = "Failed to get current game status"
-                    )
-                }
+                return
+            }
+            _state.update {
+                it.copy(
+                    gameId = player.gameId, gameStatus = gameDao.getGameStatus(player.gameId)
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("LobbyViewModel", "Failed to get current game info: $e")
+            _state.update {
+                it.copy(
+                    error = "Failed to get current game status"
+                )
             }
         }
     }

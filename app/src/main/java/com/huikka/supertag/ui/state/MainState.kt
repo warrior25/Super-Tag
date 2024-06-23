@@ -9,5 +9,6 @@ data class MainState(
     val error: String = "",
     val permissionErrorButtonTextId: Int? = null,
     val permissionErrorInfoTextId: Int? = null,
-    val permissionError: PermissionErrors? = null
+    val permissionError: PermissionErrors? = null,
+    val isInitialized: Boolean = false
 )

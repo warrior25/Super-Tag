@@ -178,21 +178,15 @@ class GameDao(application: STApplication) {
 
     suspend fun changeSettings(
         gameId: String, chaserMoney: Int, runnerMoney: Int, headStart: Int
-    ): Error? {
-        return try {
-            db.from("games").update({
-                set("chaser_money", chaserMoney)
-                set("runner_money", runnerMoney)
-                set("head_start", headStart)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
+    ) {
+        db.from("games").update({
+            set("chaser_money", chaserMoney)
+            set("runner_money", runnerMoney)
+            set("head_start", headStart)
+        }) {
+            filter {
+                eq("id", gameId)
             }
-            null
-        } catch (e: Exception) {
-            Log.e("changeSettings", e.toString())
-            Error(e)
         }
     }
 

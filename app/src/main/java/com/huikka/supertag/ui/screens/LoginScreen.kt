@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import com.huikka.supertag.R
 import com.huikka.supertag.ui.LoginScreenRoute
 import com.huikka.supertag.ui.MainScreenRoute
+import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.ui.events.LoginEvent
 import com.huikka.supertag.ui.state.LoginState
 
@@ -55,13 +56,7 @@ fun LoginScreen(
         }
     }
     if (!state.isInitialized) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(text = stringResource(id = R.string.loading), fontSize = 22.sp)
-        }
+        Loading()
         return
     }
 

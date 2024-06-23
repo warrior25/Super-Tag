@@ -11,6 +11,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.huikka.supertag.data.helpers.PermissionErrors
 import com.huikka.supertag.ui.Navigation
+import com.huikka.supertag.viewModels.LobbySettingsViewModel
 import com.huikka.supertag.viewModels.LobbyViewModel
 import com.huikka.supertag.viewModels.LoginViewModel
 import com.huikka.supertag.viewModels.MainViewModel
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private val mainViewModel: MainViewModel by viewModels { MainViewModel.Factory }
     private val lobbyViewModel: LobbyViewModel by viewModels { LobbyViewModel.Factory }
     private val loginViewModel: LoginViewModel by viewModels { LoginViewModel.Factory }
+    private val lobbySettingsViewModel: LobbySettingsViewModel by viewModels { LobbySettingsViewModel.Factory }
 
     private lateinit var requestBackgroundLocation: ActivityResultLauncher<String>
     private lateinit var requestFineLocation: ActivityResultLauncher<String>
@@ -31,7 +33,8 @@ class MainActivity : AppCompatActivity() {
             Navigation(
                 mainViewModel = mainViewModel,
                 loginViewModel = loginViewModel,
-                lobbyViewModel = lobbyViewModel
+                lobbyViewModel = lobbyViewModel,
+                lobbySettingsViewModel = lobbySettingsViewModel,
             )
         }
 

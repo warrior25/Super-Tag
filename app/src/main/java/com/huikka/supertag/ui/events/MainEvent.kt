@@ -5,4 +5,5 @@ sealed class MainEvent {
     data class OnGameIdChange(val gameId: String) : MainEvent()
     data object OnJoinGameClick : MainEvent()
     data object OnHostGameClick : MainEvent()
+    data object OnNavigateAway : MainEvent()
 }

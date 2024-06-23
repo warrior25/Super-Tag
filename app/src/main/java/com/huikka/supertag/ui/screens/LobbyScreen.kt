@@ -24,6 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.huikka.supertag.R
+import com.huikka.supertag.ui.LobbySettingsScreenRoute
+import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.ui.components.LobbyActionButtons
 import com.huikka.supertag.ui.components.PlayerListItem
 import com.huikka.supertag.ui.events.LobbyEvent
@@ -38,6 +40,10 @@ fun LobbyScreen(
     LaunchedEffect(true) {
         onEvent(LobbyEvent.OnInit(gameId))
     }
+    if (state.players.isEmpty()) {
+        Loading()
+        return
+    }
     Scaffold(
         topBar = {
             TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
@@ -49,7 +55,16 @@ fun LobbyScreen(
                 LobbyActionButtons({
                     onEvent(LobbyEvent.OnLeaveGameClick)
                     navController.navigateUp()
-                }, { /*TODO: Navigate to settings screen*/ })
+                }, {
+                    navController.navigate(
+                        LobbySettingsScreenRoute(
+                            state.gameId,
+                            state.game!!.headStart!!,
+                            state.game.runnerMoney!!,
+                            state.game.chaserMoney!!
+                        )
+                    )
+                })
             })
         },
     ) { padding ->
