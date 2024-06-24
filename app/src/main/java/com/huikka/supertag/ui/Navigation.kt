@@ -7,25 +7,41 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.huikka.supertag.ui.screens.GameScreen
 import com.huikka.supertag.ui.screens.LobbyScreen
 import com.huikka.supertag.ui.screens.LobbySettingsScreen
 import com.huikka.supertag.ui.screens.LoginScreen
 import com.huikka.supertag.ui.screens.MainScreen
+import com.huikka.supertag.ui.screens.PermissionErrorScreen
+import com.huikka.supertag.viewModels.GameViewModel
 import com.huikka.supertag.viewModels.LobbySettingsViewModel
 import com.huikka.supertag.viewModels.LobbyViewModel
 import com.huikka.supertag.viewModels.LoginViewModel
 import com.huikka.supertag.viewModels.MainViewModel
+import com.huikka.supertag.viewModels.PermissionErrorViewModel
 import kotlinx.serialization.Serializable
 
 @Composable
 fun Navigation(
+    permissionErrorViewModel: PermissionErrorViewModel,
     mainViewModel: MainViewModel,
     lobbyViewModel: LobbyViewModel,
     lobbySettingsViewModel: LobbySettingsViewModel,
-    loginViewModel: LoginViewModel
+    loginViewModel: LoginViewModel,
+    gameViewModel: GameViewModel
 ) {
+
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = LoginScreenRoute()) {
+
+    NavHost(navController = navController, startDestination = PermissionErrorScreenRoute) {
+        composable<PermissionErrorScreenRoute> {
+            val state by permissionErrorViewModel.state.collectAsState()
+            PermissionErrorScreen(
+                navController = navController,
+                state = state,
+                onEvent = permissionErrorViewModel::onEvent
+            )
+        }
         composable<LoginScreenRoute> {
             val args = it.toRoute<LoginScreenRoute>()
             val state by loginViewModel.state.collectAsState()
@@ -65,8 +81,17 @@ fun Navigation(
                 onEvent = lobbySettingsViewModel::onEvent
             )
         }
+        composable<GameScreenRoute> {
+            val state by gameViewModel.state.collectAsState()
+            GameScreen(
+                navController = navController, state = state, onEvent = gameViewModel::onEvent
+            )
+        }
     }
 }
+
+@Serializable
+object PermissionErrorScreenRoute
 
 @Serializable
 data class LoginScreenRoute(
@@ -85,3 +110,6 @@ data class LobbyScreenRoute(
 data class LobbySettingsScreenRoute(
     val gameId: String, val headStart: Int, val runnerMoney: Int, val chaserMoney: Int
 )
+
+@Serializable
+object GameScreenRoute

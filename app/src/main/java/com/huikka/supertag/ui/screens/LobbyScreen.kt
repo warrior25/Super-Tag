@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.huikka.supertag.R
+import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbySettingsScreenRoute
 import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.ui.components.LobbyActionButtons
@@ -107,7 +108,7 @@ fun LobbyScreen(
                 ) {
                     Button(onClick = {
                         onEvent(LobbyEvent.OnStartGameClick)
-                        // TODO: Navigate to game screen
+                        navController.navigate(GameScreenRoute)
                     }) {
                         Text(stringResource(id = R.string.start_game))
                     }

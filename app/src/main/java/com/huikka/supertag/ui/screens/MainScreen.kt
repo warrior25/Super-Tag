@@ -21,12 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.GameStatuses
+import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbyScreenRoute
 import com.huikka.supertag.ui.LoginScreenRoute
 import com.huikka.supertag.ui.components.FloatingActionButtonWithText
@@ -54,7 +54,7 @@ fun MainScreen(
             }
 
             GameStatuses.PLAYING -> {
-                // TODO: Navigate to game screen
+                navController.navigate(GameScreenRoute)
             }
         }
     }
@@ -77,29 +77,6 @@ fun MainScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        if (state.permissionErrorInfoTextId != null) {
-            Column(
-                modifier = Modifier
-                    .weight(1f, true)
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = stringResource(id = state.permissionErrorInfoTextId),
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = {
-                    // TODO: Request permissions
-                    //requestPermissions()
-                }) {
-                    Text(stringResource(id = state.permissionErrorButtonTextId!!))
-                }
-            }
-            return
-        }
         Column(
             modifier = Modifier
                 .weight(1f, true)

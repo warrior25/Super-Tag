@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
-import com.huikka.supertag.R
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
@@ -14,7 +13,6 @@ import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dto.Game
 import com.huikka.supertag.data.helpers.GameStatuses
-import com.huikka.supertag.data.helpers.PermissionErrors
 import com.huikka.supertag.ui.events.MainEvent
 import com.huikka.supertag.ui.state.MainState
 import kotlinx.coroutines.Dispatchers
@@ -79,41 +77,6 @@ class MainViewModel(
                 it.copy(
                     username = playerDao.getPlayerById(playerId)!!.name ?: ""
                 )
-            }
-        }
-    }
-
-    fun updatePermissionError(error: PermissionErrors?) {
-        _state.update {
-            it.copy(
-                permissionError = error
-            )
-        }
-        when (error) {
-            PermissionErrors.NotRequested -> {
-                _state.update {
-                    it.copy(
-                        permissionErrorInfoTextId = R.string.insufficient_permissions,
-                        permissionErrorButtonTextId = R.string.fix_now
-                    )
-                }
-            }
-
-            PermissionErrors.Denied -> {
-                _state.update {
-                    it.copy(
-                        permissionErrorInfoTextId = R.string.permissions_denied,
-                        permissionErrorButtonTextId = R.string.open_settings
-                    )
-                }
-            }
-
-            else -> {
-                _state.update {
-                    it.copy(
-                        permissionErrorInfoTextId = null, permissionErrorButtonTextId = null
-                    )
-                }
             }
         }
     }

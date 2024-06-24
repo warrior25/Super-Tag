@@ -99,4 +99,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.2")
     implementation("androidx.navigation:navigation-compose:2.8.0-beta03")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // https://utsmannn.github.io/osm-android-compose
+    implementation("tech.utsmankece:osm-android-compose:0.0.5")
 }
