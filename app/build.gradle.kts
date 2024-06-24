@@ -6,6 +6,7 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
     kotlin("plugin.serialization") version "1.9.0"
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -56,6 +57,15 @@ android {
     }
 }
 
+secrets {
+    propertiesFileName = "secrets.properties"
+
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    ignoreList.add("keyToIgnore") // Ignore the key "keyToIgnore"
+    ignoreList.add("sdk.*")       // Ignore all keys matching the regexp "sdk.*"
+}
+
 dependencies {
 
     implementation("androidx.core:core-ktx:1.13.1")
@@ -83,7 +93,6 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
     implementation("io.ktor:ktor-client-okhttp:2.3.11")
-    implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("androidx.preference:preference-ktx:1.2.1")
 
     // Compose
@@ -100,6 +109,6 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.0-beta03")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
-    // https://utsmannn.github.io/osm-android-compose
-    implementation("tech.utsmankece:osm-android-compose:0.0.5")
+    // Android Maps Compose composables for the Maps SDK for Android
+    implementation("com.google.maps.android:maps-compose:4.4.1")
 }

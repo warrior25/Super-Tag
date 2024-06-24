@@ -48,4 +48,8 @@
     <string name="chaser_money">Chaser money</string>
     <string name="minutes">min</string>
     <string name="currency">$</string>
+    <string name="atm">ATM</string>
+    <string name="atm_snippet">Stay here to earn money</string>
+    <string name="store">Store</string>
+    <string name="store_snippet">Stay here for a bit longer to earn more money</string>
 </resources>

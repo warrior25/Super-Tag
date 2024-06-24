@@ -1,7 +1,12 @@
 package com.huikka.supertag.ui.state
 
+import com.huikka.supertag.data.dto.Zone
+
 data class GameState(
-    val headStart: Int = 1,
-    val runnerMoney: Int = 0,
-    val chaserMoney: Int = 0,
+    val mapLoaded: Boolean = false,
+    val playingArea: Zone? = null,
+    val isInitialized: Boolean = false,
+    val isRunner: Boolean = false,
+    val runnerZones: List<Zone> = listOf(),
+    val chaserZones: List<Zone> = listOf()
 )

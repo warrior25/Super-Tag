@@ -1,4 +1,6 @@
-package com.huikka.supertag
+/*package com.huikka.supertag
+
+import androidx.appcompat.app.AppCompatActivity
 
 import android.content.Intent
 import android.graphics.Bitmap
@@ -50,8 +52,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 
-class GameActivity : AppCompatActivity() {
-    private lateinit var map: MapView
+class GameActivity : AppCompatActivity() {private lateinit var map: MapView
 
     private lateinit var myLocationOverlay: MyLocationNewOverlay
 
@@ -509,4 +510,4 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
-}
+}*/
