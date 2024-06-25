@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.huikka.supertag.STApplication
+import com.huikka.supertag.data.dao.ActiveRunnerZonesDao
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
@@ -27,6 +28,7 @@ class MainViewModel(
     private val gameDao: GameDao,
     private val playerDao: PlayerDao,
     private val runnerDao: RunnerDao,
+    private val activeRunnerZonesDao: ActiveRunnerZonesDao
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MainState())
@@ -133,6 +135,7 @@ class MainViewModel(
                 )
                 playerDao.addToGame(getPlayerId()!!, newId, true)
                 runnerDao.addGame(newId)
+                activeRunnerZonesDao.addRow(newId)
                 _state.update {
                     it.copy(
                         gameStatus = GameStatuses.LOBBY, gameId = newId
@@ -191,7 +194,11 @@ class MainViewModel(
                 val myApp = application as STApplication
 
                 return MainViewModel(
-                    myApp.authDao, myApp.gameDao, myApp.playerDao, myApp.runnerDao
+                    myApp.authDao,
+                    myApp.gameDao,
+                    myApp.playerDao,
+                    myApp.runnerDao,
+                    myApp.activeRunnerZonesDao
                 ) as T
             }
         }

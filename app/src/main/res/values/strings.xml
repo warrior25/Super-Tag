@@ -52,4 +52,5 @@
     <string name="atm_snippet">Stay here to earn money</string>
     <string name="store">Store</string>
     <string name="store_snippet">Stay here for a bit longer to earn more money</string>
+    <string name="attraction_snippet">Stay here to earn money</string>
 </resources>

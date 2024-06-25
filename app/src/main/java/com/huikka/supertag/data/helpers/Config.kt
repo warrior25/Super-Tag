@@ -1,6 +1,7 @@
 package com.huikka.supertag.data.helpers
 
 const val minute = 60000L
+const val second = 1000L
 
 object Config {
     const val RUNNER_ZONE_SHUFFLE_TIME = 30 * minute

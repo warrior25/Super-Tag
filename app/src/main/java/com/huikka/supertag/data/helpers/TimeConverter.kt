@@ -17,8 +17,20 @@ class TimeConverter {
 
         fun timestampToLong(timestamp: String): Long {
             val format = SimpleDateFormat(FORMAT_STRING, Locale.US)
-            format.timeZone = TimeZone.getTimeZone("UTC")
-            return format.parse(timestamp)?.time ?: 0
+            format.timeZone = TimeZone.getDefault()
+            val date = format.parse(timestamp) ?: return 0
+            return date.time
+        }
+
+        fun longToMinutesAndSeconds(time: Long): Pair<Long, Long> {
+            // Convert delay from milliseconds to seconds
+            val delaySeconds = time / 1000
+
+            // Calculate minutes and remaining seconds
+            val minutes = delaySeconds / 60
+            val seconds = delaySeconds % 60
+
+            return Pair(minutes, seconds)
         }
     }
 }

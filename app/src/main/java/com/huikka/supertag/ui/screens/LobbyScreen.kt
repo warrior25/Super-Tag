@@ -20,10 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.huikka.supertag.R
+import com.huikka.supertag.data.helpers.GameStatuses
+import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbySettingsScreenRoute
 import com.huikka.supertag.ui.components.Loading
@@ -38,8 +41,16 @@ import com.huikka.supertag.ui.state.LobbyState
 fun LobbyScreen(
     navController: NavController, gameId: String, state: LobbyState, onEvent: (LobbyEvent) -> Unit
 ) {
+    val context = LocalContext.current
     LaunchedEffect(true) {
         onEvent(LobbyEvent.OnInit(gameId))
+    }
+    LaunchedEffect(state.game?.status) {
+        if (state.game?.status == GameStatuses.PLAYING) {
+            navController.navigate(GameScreenRoute)
+        } else {
+            ServiceStatus.setServiceRunning(context, false)
+        }
     }
     if (state.players.isEmpty()) {
         Loading()

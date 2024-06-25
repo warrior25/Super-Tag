@@ -1,9 +1,12 @@
 package com.huikka.supertag.ui.screens
 
 import android.content.Intent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -15,8 +18,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
 import com.google.android.gms.maps.model.CameraPosition
@@ -25,9 +31,13 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.huikka.supertag.LocationUpdateService
+import com.huikka.supertag.data.helpers.Config
+import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.ui.components.Loading
+import com.huikka.supertag.ui.components.Timer
 import com.huikka.supertag.ui.components.map.ATM
+import com.huikka.supertag.ui.components.map.Attraction
 import com.huikka.supertag.ui.components.map.Store
 import com.huikka.supertag.ui.components.map.Zone
 import com.huikka.supertag.ui.events.GameEvent
@@ -40,26 +50,41 @@ fun GameScreen(
 ) {
     val context = LocalContext.current
     LaunchedEffect(true) {
-        val intent = Intent(context, LocationUpdateService::class.java)
-        startForegroundService(context, intent)
+        if (!ServiceStatus.isServiceRunning(context)) {
+            val intent = Intent(context, LocationUpdateService::class.java)
+            startForegroundService(context, intent)
+            ServiceStatus.setServiceRunning(context, true)
+        }
         onEvent(GameEvent.OnInit)
     }
+
     if (!state.isInitialized) {
         Loading()
         return
     }
-    Scaffold(
-        topBar = {
-            TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.primary,
-            ), title = {
-                Text("Game")
-            }, actions = {
+    Scaffold(topBar = {
+        TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+        ), title = {
+            Text("Game")
+        }, actions = {
 
-            })
-        },
-    ) { padding ->
+        })
+    }, bottomBar = {
+        BottomAppBar(actions = {
+            Timer(
+                startTime = state.zoneUpdateTimer.time,
+                totalTime = Config.RUNNER_ZONE_SHUFFLE_TIME,
+                isTimerRunning = state.zoneUpdateTimer.isRunning,
+                handleColor = MaterialTheme.colorScheme.primary,
+                inactiveBarColor = Color.Gray,
+                activeBarColor = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(75.dp),
+                title = "Zone"
+            )
+        })
+    }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -74,24 +99,30 @@ fun GameScreen(
                 mutableStateOf(MapProperties(isMyLocationEnabled = true))
             }
 
-            GoogleMap(
-                modifier = Modifier.fillMaxSize(),
-                cameraPositionState = cameraPositionState,
-                properties = properties
-            ) {
-                Zone(zone = state.playingArea!!)
+            Box(contentAlignment = Alignment.Center) {
+                GoogleMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraPositionState,
+                    properties = properties
+                ) {
+                    Zone(zone = state.playingArea!!)
 
-                if (true /* TODO: is chaser */) {
-                    for (zone in state.chaserZones) {
-                        if (zone.type == ZoneTypes.ATM) {
-                            ATM(zone = zone)
-                        } else if (zone.type == ZoneTypes.STORE) {
-                            Store(zone = zone)
+                    if (state.isRunner) {
+                        for (zone in state.activeRunnerZones) {
+                            Attraction(zone = zone)
                         }
+                    } else {
+                        for (zone in state.chaserZones) {
+                            if (zone.type == ZoneTypes.ATM) {
+                                ATM(zone = zone)
+                            } else if (zone.type == ZoneTypes.STORE) {
+                                Store(zone = zone)
+                            }
 
+                        }
                     }
-                }
 
+                }
             }
         }
     }

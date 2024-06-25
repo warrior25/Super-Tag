@@ -189,31 +189,4 @@ class GameDao(application: STApplication) {
             }
         }
     }
-
-    suspend fun getActiveRunnerZones(gameId: String): List<Int>? {
-        return try {
-            db.from("games").select(columns = Columns.list("active_runner_zones")) {
-                filter {
-                    eq("id", gameId)
-                }
-            }.decodeSingle<Game>().activeRunnerZones
-        } catch (e: Exception) {
-            Log.d("getActiveRunnerZones", e.toString())
-            null
-        }
-    }
-
-    suspend fun setActiveRunnerZones(gameId: String, zones: List<Int>) {
-        try {
-            db.from("games").update({
-                set("active_runner_zones", zones)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d("getActiveRunnerZones", e.toString())
-        }
-    }
 }
