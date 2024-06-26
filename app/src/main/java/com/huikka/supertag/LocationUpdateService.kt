@@ -27,6 +27,7 @@ import com.huikka.supertag.data.helpers.ServiceActions
 import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.TimeConverter
 import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.minute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -42,9 +43,14 @@ class LocationUpdateService : Service(), LocationListener {
     private lateinit var activeRunnerZonesDao: ActiveRunnerZonesDao
     private lateinit var zoneManager: ZoneManager
     private lateinit var locationManager: LocationManager
+
     private lateinit var userId: String
     private lateinit var gameId: String
     private var isRunner: Boolean = false
+    private var initialTrackingInterval: Long = 0
+    private var headStart: Long = 0
+
+    private lateinit var myLocation: Location
 
     private var runnerZones: MutableList<Zone> = mutableListOf()
     private var chaserZones: MutableList<Zone> = mutableListOf()
@@ -89,6 +95,7 @@ class LocationUpdateService : Service(), LocationListener {
                     // Recursive actions that are repeated with a timer
                     if (isRunner) {
                         shuffleRunnerZones()
+                        activateRunnerLocationUpdates()
                     }
                 }
             }
@@ -101,8 +108,10 @@ class LocationUpdateService : Service(), LocationListener {
         return START_STICKY
     }
 
+
     override fun onLocationChanged(loc: Location) {
         CoroutineScope(Dispatchers.IO).launch {
+            myLocation = loc
             val zoneId = zoneManager.getZoneFromLocation(loc)?.id
             val error = playerDao.updatePlayerLocation(
                 userId, loc.latitude, loc.longitude, loc.accuracy, loc.speed, loc.bearing, zoneId
@@ -118,6 +127,8 @@ class LocationUpdateService : Service(), LocationListener {
         userId = authDao.getUser()!!.id
         gameId = gameDao.getCurrentGameInfo(userId).gameId!!
         isRunner = gameDao.getRunnerId(gameId) == userId
+        initialTrackingInterval = gameDao.getInitialTrackingInterval(gameId)!!.toLong()
+        headStart = gameDao.getHeadStart(gameId)!!.toLong()
         getZones()
     }
 
@@ -156,6 +167,51 @@ class LocationUpdateService : Service(), LocationListener {
 
             delay(Config.RUNNER_ZONE_SHUFFLE_TIME)
             shuffleRunnerZones()
+        }
+    }
+
+    private fun updateRunnerLocation(delayBeforeUpdate: Long) {
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(delayBeforeUpdate)
+            val now = TimeConverter.longToTimestamp(System.currentTimeMillis())
+            val nextDelay = delayBeforeUpdate.minus(
+                minute
+            ).coerceAtLeast(minute)
+            val nextUpdate = TimeConverter.longToTimestamp(
+                (System.currentTimeMillis() + nextDelay)
+            )
+            runnerDao.setLocation(
+                gameId = gameId,
+                latitude = myLocation.latitude,
+                longitude = myLocation.longitude,
+                accuracy = myLocation.accuracy,
+                lastUpdate = now,
+                nextUpdate = nextUpdate
+            )
+            updateRunnerLocation(nextDelay)
+        }
+    }
+
+    private fun activateRunnerLocationUpdates() {
+        CoroutineScope(Dispatchers.IO).launch {
+            var nextUpdate =
+                TimeConverter.longToTimestamp(System.currentTimeMillis() + headStart * minute)
+            runnerDao.setNextUpdateTime(gameId, nextUpdate)
+
+            delay(headStart * minute)
+
+            val now = TimeConverter.longToTimestamp(System.currentTimeMillis())
+            nextUpdate =
+                TimeConverter.longToTimestamp(System.currentTimeMillis() + initialTrackingInterval)
+            runnerDao.setLocation(
+                gameId = gameId,
+                latitude = myLocation.latitude,
+                longitude = myLocation.longitude,
+                accuracy = myLocation.accuracy,
+                lastUpdate = now,
+                nextUpdate = nextUpdate
+            )
+            updateRunnerLocation(initialTrackingInterval * minute)
         }
     }
 

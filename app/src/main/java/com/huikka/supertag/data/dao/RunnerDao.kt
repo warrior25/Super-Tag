@@ -18,11 +18,17 @@ class RunnerDao(application: STApplication) {
     }
 
     suspend fun setLocation(
-        gameId: String, latitude: Double, longitude: Double, lastUpdate: String, nextUpdate: String
+        gameId: String,
+        latitude: Double,
+        longitude: Double,
+        accuracy: Float,
+        lastUpdate: String,
+        nextUpdate: String
     ) {
         db.from("runners").update({
             set("latitude", latitude)
             set("longitude", longitude)
+            set("location_accuracy", accuracy)
             set("last_update", lastUpdate)
             set("next_update", nextUpdate)
         }) {

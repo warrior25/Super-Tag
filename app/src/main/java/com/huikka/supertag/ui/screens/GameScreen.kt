@@ -84,6 +84,7 @@ fun GameScreen(
         Loading()
         return
     }
+
     Scaffold(topBar = {
         TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -105,18 +106,13 @@ fun GameScreen(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false },
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(id = R.string.how_to_play))
-                    },
-                    onClick = { /* TODO */ },
+                DropdownMenuItem(text = {
+                    Text(stringResource(id = R.string.how_to_play))
+                }, onClick = { /* TODO */ }, enabled = false
                 )
-                DropdownMenuItem(
-                    text = {
-                        Text(stringResource(id = R.string.leave_game))
-                    },
-                    onClick = { showLeaveGameDialog = true },
-                )
+                DropdownMenuItem(text = {
+                    Text(stringResource(id = R.string.leave_game))
+                }, onClick = { showLeaveGameDialog = true })
             }
         })
     }, bottomBar = {
