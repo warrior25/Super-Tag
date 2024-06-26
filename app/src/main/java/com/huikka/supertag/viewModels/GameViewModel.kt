@@ -37,6 +37,7 @@ class GameViewModel(
     fun onEvent(event: GameEvent) {
         when (event) {
             is GameEvent.OnInit -> initData()
+            is GameEvent.OnLeaveGame -> leaveGame()
         }
     }
 
@@ -121,6 +122,16 @@ class GameViewModel(
                     time = delay
                 )
             )
+        }
+    }
+
+    private fun leaveGame() {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (state.value.isRunner) {
+                gameDao.removeGame(state.value.gameId!!)
+            } else {
+                playerDao.removeFromGame(state.value.gameId!!)
+            }
         }
     }
 

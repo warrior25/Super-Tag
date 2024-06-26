@@ -25,10 +25,10 @@
     <string name="avatar">Avatar</string>
     <string name="game_id">Game ID</string>
     <string name="join_game">Join game</string>
-    <string name="create_game">Create Game</string>
-    <string name="start_game">Start Game</string>"
+    <string name="create_game">Create game</string>
+    <string name="start_game">Start game</string>"
     <string name="random">Random</string>
-    <string name="leave_game">Leave Game</string>
+    <string name="leave_game">Leave game</string>
     <string name="logout">Logout</string>
     <string name="insufficient_permissions">Super Tag needs location permissions to function properly. Please allow location access all the time.</string>
     <string name="permissions_denied">Unable to get requested permissions. Click the button below to give location permission manually.</string>
@@ -53,4 +53,11 @@
     <string name="store">Store</string>
     <string name="store_snippet">Stay here for a bit longer to earn more money</string>
     <string name="attraction_snippet">Stay here to earn money</string>
+    <string name="runner">Runner</string>
+    <string name="chaser">Chaser</string>
+    <string name="how_to_play">How to play?</string>
+    <string name="leave_game_confirm_text_runner">Leaving the game as runner will end the game for everyone. Are you sure you want to leave the game?</string>
+    <string name="leave_game_confirm_text_chaser">Are you sure you want to leave the game?</string>
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
 </resources>

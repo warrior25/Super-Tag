@@ -23,6 +23,7 @@ import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
+import com.huikka.supertag.data.helpers.ServiceActions
 import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.TimeConverter
 import com.huikka.supertag.data.helpers.ZoneTypes
@@ -69,27 +70,34 @@ class LocationUpdateService : Service(), LocationListener {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ServiceActions.START_SERVICE -> {
+                if (ActivityCompat.checkSelfPermission(
+                        this, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                        this, Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    locationManager.requestLocationUpdates(
+                        LocationManager.GPS_PROVIDER, 5000, 10f, this
+                    )
+                }
 
-        if (ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            locationManager.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER, 5000, 10f, this
-            )
-        }
+                CoroutineScope(Dispatchers.IO).launch {
+                    initData()
 
-        CoroutineScope(Dispatchers.IO).launch {
-            initData()
+                    // Recursive actions that are repeated with a timer
+                    if (isRunner) {
+                        shuffleRunnerZones()
+                    }
+                }
+            }
 
-            // Recursive actions that are repeated with a timer
-            if (isRunner) {
-                shuffleRunnerZones()
+            ServiceActions.STOP_SERVICE -> {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelfResult(startId)
             }
         }
-
         return START_STICKY
     }
 

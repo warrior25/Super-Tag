@@ -149,7 +149,11 @@ class LobbyViewModel(
     private fun leaveGame() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                playerDao.removeFromGame(getPlayerId()!!)
+                if (state.value.isHost) {
+                    gameDao.removeGame(state.value.gameId)
+                } else {
+                    playerDao.removeFromGame(getPlayerId()!!)
+                }
                 _state.update {
                     it.copy(
                         gameId = ""
