@@ -60,4 +60,5 @@
     <string name="leave_game_confirm_text_chaser">Are you sure you want to leave the game?</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
+    <string name="zone">Zone</string>
 </resources>

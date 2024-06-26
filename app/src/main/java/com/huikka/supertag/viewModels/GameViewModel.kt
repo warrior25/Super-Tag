@@ -9,14 +9,16 @@ import com.huikka.supertag.data.dao.ActiveRunnerZonesDao
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
+import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
+import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.TimeConverter
 import com.huikka.supertag.data.helpers.ZoneTypes
-import com.huikka.supertag.data.helpers.second
 import com.huikka.supertag.ui.events.GameEvent
 import com.huikka.supertag.ui.state.GameState
 import com.huikka.supertag.ui.state.TimerState
+import com.instacart.truetime.time.TrueTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +30,9 @@ class GameViewModel(
     private val gameDao: GameDao,
     private val playerDao: PlayerDao,
     private val zoneDao: ZoneDao,
-    private val activeRunnerZonesDao: ActiveRunnerZonesDao
+    private val activeRunnerZonesDao: ActiveRunnerZonesDao,
+    private val runnerDao: RunnerDao,
+    private val trueTime: TrueTime
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GameState())
@@ -45,17 +49,18 @@ class GameViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             getUserData()
             getZones()
-            getIsRunner()
+            getRunnerData()
             listenToGameDataChanges()
             _state.update {
                 it.copy(
-                    playingArea = zoneDao.getPlayingArea(), isInitialized = true
+                    playingArea = zoneDao.getPlayingArea()
                 )
             }
         }
     }
 
     private suspend fun getUserData() {
+        authDao.awaitCurrentSession()
         val userId = authDao.getUser()!!.id
         val gameId = gameDao.getCurrentGameInfo(userId).gameId!!
         _state.update {
@@ -83,11 +88,12 @@ class GameViewModel(
         }
     }
 
-    private suspend fun getIsRunner() {
+    private suspend fun getRunnerData() {
         val runnerId = gameDao.getRunnerId(state.value.gameId!!)!!
+        val runnerName = playerDao.getPlayerById(runnerId)!!.name!!
         _state.update {
             it.copy(
-                isRunner = state.value.userId == runnerId
+                isRunner = state.value.userId == runnerId, runnerName = runnerName
             )
         }
     }
@@ -98,11 +104,20 @@ class GameViewModel(
             flow.collect { game ->
             }
         }
-        viewModelScope.launch(Dispatchers.IO) {
-            val flow = activeRunnerZonesDao.getActiveRunnerZonesFlow(state.value.gameId!!)
-            flow.collect {
-                if (it.activeZoneIds != null) {
-                    updateActiveRunnerZones(it.activeZoneIds, it.nextUpdate!!)
+        if (state.value.isRunner) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val flow = activeRunnerZonesDao.getActiveRunnerZonesFlow(state.value.gameId!!)
+                flow.collect {
+                    if (it.activeZoneIds != null) {
+                        updateActiveRunnerZones(it.activeZoneIds, it.nextUpdate!!)
+                    }
+                }
+            }
+        } else {
+            viewModelScope.launch(Dispatchers.IO) {
+                val flow = runnerDao.getRunnerFlow(state.value.gameId!!)
+                flow.collect {
+                    updateRunner(it)
                 }
             }
         }
@@ -111,8 +126,7 @@ class GameViewModel(
     private fun updateActiveRunnerZones(zoneIds: List<Int>, nextUpdate: String) {
         val activeZones = state.value.runnerZones.filter { it.id in zoneIds }
         val delay =
-            TimeConverter.timestampToLong(nextUpdate).minus(System.currentTimeMillis() + second)
-                .coerceAtLeast(0)
+            TimeConverter.timestampToLong(nextUpdate).minus(trueTime.now().time).coerceAtLeast(0)
 
         // Might not restart timer if delay is exactly same as previously,
         // unlikely when working with milliseconds
@@ -120,7 +134,22 @@ class GameViewModel(
             it.copy(
                 activeRunnerZones = activeZones, zoneUpdateTimer = TimerState(
                     time = delay
-                )
+                ), isInitialized = true
+            )
+        }
+    }
+
+    private fun updateRunner(runner: Runner) {
+        if (runner.nextUpdate == null) {
+            return
+        }
+        val delay = TimeConverter.timestampToLong(runner.nextUpdate).minus(trueTime.now().time)
+            .coerceAtLeast(0)
+        _state.update {
+            it.copy(
+                runner = runner,
+                runnerLocationUpdateTimer = TimerState(time = delay),
+                isInitialized = true
             )
         }
     }
@@ -130,7 +159,7 @@ class GameViewModel(
             if (state.value.isRunner) {
                 gameDao.removeGame(state.value.gameId!!)
             } else {
-                playerDao.removeFromGame(state.value.gameId!!)
+                playerDao.removeFromGame(state.value.userId!!)
             }
         }
     }
@@ -149,7 +178,9 @@ class GameViewModel(
                     myApp.gameDao,
                     myApp.playerDao,
                     myApp.zoneDao,
-                    myApp.activeRunnerZonesDao
+                    myApp.activeRunnerZonesDao,
+                    myApp.runnerDao,
+                    myApp.trueTime
                 ) as T
             }
         }

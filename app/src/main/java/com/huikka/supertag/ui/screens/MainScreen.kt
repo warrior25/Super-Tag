@@ -1,5 +1,6 @@
 package com.huikka.supertag.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,12 +21,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
+import com.huikka.supertag.LocationUpdateService
 import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.GameStatuses
+import com.huikka.supertag.data.helpers.ServiceActions
+import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbyScreenRoute
 import com.huikka.supertag.ui.LoginScreenRoute
@@ -39,6 +45,8 @@ fun MainScreen(
     state: MainState,
     onEvent: (MainEvent) -> Unit,
 ) {
+    val context = LocalContext.current
+
     LaunchedEffect(Unit) {
         onEvent(MainEvent.OnInit)
     }
@@ -55,6 +63,13 @@ fun MainScreen(
 
             GameStatuses.PLAYING -> {
                 navController.navigate(GameScreenRoute)
+            }
+
+            else -> {
+                val intent = Intent(context, LocationUpdateService::class.java)
+                intent.setAction(ServiceActions.STOP_SERVICE)
+                startForegroundService(context, intent)
+                ServiceStatus.setServiceRunning(context, false)
             }
         }
     }

@@ -7,6 +7,8 @@ import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
+import com.instacart.truetime.time.TrueTimeImpl
+
 
 class STApplication : Application() {
     //private val database by lazy { AppDatabase.getDatabase(this) }
@@ -18,4 +20,11 @@ class STApplication : Application() {
     val runnerDao by lazy { RunnerDao(this) }
     val zoneDao by lazy { ZoneDao(this) }
     val activeRunnerZonesDao by lazy { ActiveRunnerZonesDao(this) }
+
+    val trueTime = TrueTimeImpl()
+
+    override fun onCreate() {
+        super.onCreate()
+        trueTime.sync()
+    }
 }

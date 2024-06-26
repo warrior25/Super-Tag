@@ -31,6 +31,7 @@ class LobbyViewModel(
             is LobbyEvent.OnStartGameClick -> startGame()
             is LobbyEvent.OnRunnerChange -> setRunner(event.runnerId)
             is LobbyEvent.OnInit -> initData(event.gameId)
+            is LobbyEvent.OnNavigateAway -> resetIsInitialized()
         }
     }
 
@@ -43,6 +44,14 @@ class LobbyViewModel(
         getHostStatus()
         getPlayers()
         getGameData()
+    }
+
+    private fun resetIsInitialized() {
+        _state.update {
+            it.copy(
+                isInitialized = false
+            )
+        }
     }
 
     private suspend fun getPlayerId(): String? {
@@ -116,7 +125,7 @@ class LobbyViewModel(
                 flow.collect { game ->
                     _state.update {
                         it.copy(
-                            game = game
+                            game = game, isInitialized = true
                         )
                     }
                 }

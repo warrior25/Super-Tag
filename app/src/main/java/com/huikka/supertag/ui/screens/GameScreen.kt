@@ -35,6 +35,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -52,6 +53,7 @@ import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.ui.components.Timer
 import com.huikka.supertag.ui.components.map.ATM
 import com.huikka.supertag.ui.components.map.Attraction
+import com.huikka.supertag.ui.components.map.Player
 import com.huikka.supertag.ui.components.map.Store
 import com.huikka.supertag.ui.components.map.Zone
 import com.huikka.supertag.ui.events.GameEvent
@@ -117,16 +119,29 @@ fun GameScreen(
         })
     }, bottomBar = {
         BottomAppBar(actions = {
-            Timer(
-                startTime = state.zoneUpdateTimer.time,
-                totalTime = Config.RUNNER_ZONE_SHUFFLE_TIME,
-                isTimerRunning = state.zoneUpdateTimer.isRunning,
-                handleColor = MaterialTheme.colorScheme.primary,
-                inactiveBarColor = Color.Gray,
-                activeBarColor = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(75.dp),
-                title = "Zone"
-            )
+            if (state.isRunner) {
+                Timer(
+                    startTime = state.zoneUpdateTimer.time,
+                    totalTime = Config.RUNNER_ZONE_SHUFFLE_TIME,
+                    isTimerRunning = state.zoneUpdateTimer.isRunning,
+                    handleColor = MaterialTheme.colorScheme.primary,
+                    inactiveBarColor = Color.Gray,
+                    activeBarColor = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(75.dp),
+                    title = stringResource(id = R.string.zone)
+                )
+            } else {
+                Timer(
+                    startTime = state.runnerLocationUpdateTimer.time,
+                    totalTime = state.runnerLocationUpdateTimer.time,
+                    isTimerRunning = state.runnerLocationUpdateTimer.isRunning,
+                    handleColor = MaterialTheme.colorScheme.primary,
+                    inactiveBarColor = Color.Gray,
+                    activeBarColor = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(75.dp),
+                    title = stringResource(id = R.string.runner)
+                )
+            }
         })
     }) { padding ->
         if (showLeaveGameDialog) {
@@ -171,7 +186,7 @@ fun GameScreen(
                     cameraPositionState = cameraPositionState,
                     properties = properties
                 ) {
-                    Zone(zone = state.playingArea!!)
+                    Zone(zone = state.playingArea)
 
                     if (state.isRunner) {
                         for (zone in state.activeRunnerZones) {
@@ -184,10 +199,18 @@ fun GameScreen(
                             } else if (zone.type == ZoneTypes.STORE) {
                                 Store(zone = zone)
                             }
-
+                        }
+                        if (state.runner?.latitude != null) {
+                            Player(
+                                name = state.runnerName,
+                                role = stringResource(id = R.string.runner),
+                                latitude = state.runner.latitude,
+                                longitude = state.runner.longitude!!,
+                                accuracy = state.runner.locationAccuracy!!.toDouble(),
+                                icon = BitmapDescriptorFactory.fromResource(R.drawable.agent)
+                            )
                         }
                     }
-
                 }
             }
         }

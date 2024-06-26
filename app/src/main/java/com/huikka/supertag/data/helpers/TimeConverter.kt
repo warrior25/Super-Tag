@@ -12,12 +12,13 @@ class TimeConverter {
 
         fun longToTimestamp(time: Long): String {
             val format = SimpleDateFormat(FORMAT_STRING, Locale.US)
+            format.timeZone = TimeZone.getTimeZone("UTC")
             return format.format(Date(time))
         }
 
         fun timestampToLong(timestamp: String): Long {
             val format = SimpleDateFormat(FORMAT_STRING, Locale.US)
-            format.timeZone = TimeZone.getDefault()
+            format.timeZone = TimeZone.getTimeZone("UTC")
             val date = format.parse(timestamp) ?: return 0
             return date.time
         }

@@ -28,6 +28,7 @@ import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.TimeConverter
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.data.helpers.minute
+import com.instacart.truetime.time.TrueTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -41,6 +42,7 @@ class LocationUpdateService : Service(), LocationListener {
     private lateinit var zoneDao: ZoneDao
     private lateinit var authDao: AuthDao
     private lateinit var activeRunnerZonesDao: ActiveRunnerZonesDao
+    private lateinit var trueTime: TrueTime
     private lateinit var zoneManager: ZoneManager
     private lateinit var locationManager: LocationManager
 
@@ -69,6 +71,7 @@ class LocationUpdateService : Service(), LocationListener {
         zoneDao = app.zoneDao
         authDao = app.authDao
         activeRunnerZonesDao = app.activeRunnerZonesDao
+        trueTime = app.trueTime
         zoneManager = ZoneManager(app)
 
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
@@ -156,7 +159,7 @@ class LocationUpdateService : Service(), LocationListener {
 
             activeZoneIds = listOf(zone1.id!!, zone2.id!!)
 
-            val nextUpdateDelay = System.currentTimeMillis() + Config.RUNNER_ZONE_SHUFFLE_TIME
+            val nextUpdateDelay = trueTime.now().time + Config.RUNNER_ZONE_SHUFFLE_TIME
             val nextUpdateTimestamp = TimeConverter.longToTimestamp(nextUpdateDelay)
 
             activeRunnerZonesDao.setActiveRunnerZones(
@@ -173,12 +176,12 @@ class LocationUpdateService : Service(), LocationListener {
     private fun updateRunnerLocation(delayBeforeUpdate: Long) {
         CoroutineScope(Dispatchers.IO).launch {
             delay(delayBeforeUpdate)
-            val now = TimeConverter.longToTimestamp(System.currentTimeMillis())
+            val now = TimeConverter.longToTimestamp(trueTime.now().time)
             val nextDelay = delayBeforeUpdate.minus(
                 minute
             ).coerceAtLeast(minute)
             val nextUpdate = TimeConverter.longToTimestamp(
-                (System.currentTimeMillis() + nextDelay)
+                (trueTime.now().time + nextDelay)
             )
             runnerDao.setLocation(
                 gameId = gameId,
@@ -194,15 +197,14 @@ class LocationUpdateService : Service(), LocationListener {
 
     private fun activateRunnerLocationUpdates() {
         CoroutineScope(Dispatchers.IO).launch {
-            var nextUpdate =
-                TimeConverter.longToTimestamp(System.currentTimeMillis() + headStart * minute)
+            var nextUpdate = TimeConverter.longToTimestamp(trueTime.now().time + headStart * minute)
             runnerDao.setNextUpdateTime(gameId, nextUpdate)
 
             delay(headStart * minute)
 
-            val now = TimeConverter.longToTimestamp(System.currentTimeMillis())
+            val now = TimeConverter.longToTimestamp(trueTime.now().time)
             nextUpdate =
-                TimeConverter.longToTimestamp(System.currentTimeMillis() + initialTrackingInterval)
+                TimeConverter.longToTimestamp(trueTime.now().time + initialTrackingInterval * minute)
             runnerDao.setLocation(
                 gameId = gameId,
                 latitude = myLocation.latitude,

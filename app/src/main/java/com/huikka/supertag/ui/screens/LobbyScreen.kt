@@ -45,6 +45,7 @@ fun LobbyScreen(
     LaunchedEffect(state.isInitialized, state.game?.status) {
         if (state.game?.status == GameStatuses.PLAYING && state.isInitialized) {
             navController.navigate(GameScreenRoute)
+            onEvent(LobbyEvent.OnNavigateAway)
         }
     }
     if (state.players.isEmpty()) {
@@ -59,6 +60,7 @@ fun LobbyScreen(
             ), title = {
                 Text(state.gameId)
             }, actions = {
+                // TODO: Remove settings button from non-host players
                 LobbyActionButtons({
                     onEvent(LobbyEvent.OnLeaveGameClick)
                     navController.navigateUp()
@@ -115,6 +117,7 @@ fun LobbyScreen(
                     Button(onClick = {
                         onEvent(LobbyEvent.OnStartGameClick)
                         navController.navigate(GameScreenRoute)
+                        onEvent(LobbyEvent.OnNavigateAway)
                     }) {
                         Text(stringResource(id = R.string.start_game))
                     }
