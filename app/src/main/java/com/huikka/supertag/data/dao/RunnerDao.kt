@@ -22,8 +22,8 @@ class RunnerDao(application: STApplication) {
         latitude: Double,
         longitude: Double,
         accuracy: Float,
-        lastUpdate: String,
-        nextUpdate: String
+        lastUpdate: Long,
+        nextUpdate: Long
     ) {
         db.from("runners").update({
             set("latitude", latitude)
@@ -38,7 +38,7 @@ class RunnerDao(application: STApplication) {
         }
     }
 
-    suspend fun getNextUpdateTime(gameId: String): String? {
+    suspend fun getNextUpdateTime(gameId: String): Long? {
         return db.from("runners").select(columns = Columns.list("next_update")) {
             filter {
                 eq("game_id", gameId)
@@ -46,7 +46,7 @@ class RunnerDao(application: STApplication) {
         }.decodeSingle<Runner>().nextUpdate
     }
 
-    suspend fun setNextUpdateTime(gameId: String, nextUpdate: String) {
+    suspend fun setNextUpdateTime(gameId: String, nextUpdate: Long) {
         db.from("runners").update({
             set("next_update", nextUpdate)
         }) {
@@ -56,7 +56,7 @@ class RunnerDao(application: STApplication) {
         }
     }
 
-    suspend fun getLastUpdateTime(gameId: String): String? {
+    suspend fun getLastUpdateTime(gameId: String): Long? {
         return db.from("runners").select(columns = Columns.list("last_update")) {
             filter {
                 eq("game_id", gameId)

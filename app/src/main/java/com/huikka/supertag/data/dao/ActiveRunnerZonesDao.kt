@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 class ActiveRunnerZonesDao(application: STApplication) {
     private val db: Postgrest = application.supabase.postgrest
 
-    suspend fun setActiveRunnerZones(gameId: String, zones: List<Int>, nextUpdate: String) {
+    suspend fun setActiveRunnerZones(gameId: String, zones: List<Int>, nextUpdate: Long) {
         db.from("active_runner_zones").update({
             set("active_zone_ids", zones)
             set("next_update", nextUpdate)

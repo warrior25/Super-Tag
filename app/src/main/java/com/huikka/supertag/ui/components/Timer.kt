@@ -1,10 +1,12 @@
 package com.huikka.supertag.ui.components
 
+import android.os.CountDownTimer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -28,7 +30,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.huikka.supertag.data.helpers.TimeConverter
-import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -37,7 +38,6 @@ import kotlin.math.sin
 fun Timer(
     startTime: Long,
     totalTime: Long,
-    isTimerRunning: Boolean,
     handleColor: Color,
     inactiveBarColor: Color,
     activeBarColor: Color,
@@ -55,27 +55,28 @@ fun Timer(
     var currentTime by remember {
         mutableLongStateOf(0L)
     }
-    var minutes by remember {
-        mutableLongStateOf(0L)
+
+    val countDownTimer = object : CountDownTimer(startTime, 100) {
+        override fun onTick(millisUntilFinished: Long) {
+            currentTime = millisUntilFinished
+            value = currentTime / totalTime.toFloat()
+        }
+
+        override fun onFinish() {
+
+        }
     }
-    var seconds by remember {
-        mutableLongStateOf(0L)
+
+    DisposableEffect(true) {
+        countDownTimer.start()
+        onDispose {
+            countDownTimer.cancel()
+        }
     }
 
     LaunchedEffect(startTime) {
-        currentTime = startTime
-        value = currentTime / totalTime.toFloat()
-    }
-
-    LaunchedEffect(currentTime, isTimerRunning) {
-        if (currentTime > 0 && isTimerRunning) {
-            delay(100L)
-            currentTime -= 100L
-            value = currentTime / totalTime.toFloat()
-            val (m, s) = TimeConverter.longToMinutesAndSeconds(currentTime)
-            minutes = m
-            seconds = s
-        }
+        countDownTimer.cancel()
+        countDownTimer.start()
     }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.onSizeChanged { size = it }) {
@@ -110,7 +111,7 @@ fun Timer(
             )
         }
         Text(
-            text = "$minutes m\n$seconds s",
+            text = minutesAndSeconds(currentTime),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
@@ -124,4 +125,12 @@ fun Timer(
             modifier = Modifier.offset(y = 28.dp)
         )
     }
+}
+
+fun minutesAndSeconds(time: Long): String {
+    val result = TimeConverter.longToMinutesAndSeconds(time)
+    if (result.first == 0L) {
+        return "${result.second} s"
+    }
+    return "${result.first} m\n${result.second} s"
 }

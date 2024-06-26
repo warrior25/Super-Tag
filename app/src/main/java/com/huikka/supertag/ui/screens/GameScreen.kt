@@ -123,7 +123,6 @@ fun GameScreen(
                 Timer(
                     startTime = state.zoneUpdateTimer.time,
                     totalTime = Config.RUNNER_ZONE_SHUFFLE_TIME,
-                    isTimerRunning = state.zoneUpdateTimer.isRunning,
                     handleColor = MaterialTheme.colorScheme.primary,
                     inactiveBarColor = Color.Gray,
                     activeBarColor = MaterialTheme.colorScheme.secondary,
@@ -134,7 +133,6 @@ fun GameScreen(
                 Timer(
                     startTime = state.runnerLocationUpdateTimer.time,
                     totalTime = state.runnerLocationUpdateTimer.time,
-                    isTimerRunning = state.runnerLocationUpdateTimer.isRunning,
                     handleColor = MaterialTheme.colorScheme.primary,
                     inactiveBarColor = Color.Gray,
                     activeBarColor = MaterialTheme.colorScheme.secondary,

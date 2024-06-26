@@ -13,7 +13,6 @@ import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
 import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
-import com.huikka.supertag.data.helpers.TimeConverter
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.ui.events.GameEvent
 import com.huikka.supertag.ui.state.GameState
@@ -123,10 +122,9 @@ class GameViewModel(
         }
     }
 
-    private fun updateActiveRunnerZones(zoneIds: List<Int>, nextUpdate: String) {
+    private fun updateActiveRunnerZones(zoneIds: List<Int>, nextUpdate: Long) {
         val activeZones = state.value.runnerZones.filter { it.id in zoneIds }
-        val delay =
-            TimeConverter.timestampToLong(nextUpdate).minus(trueTime.now().time).coerceAtLeast(0)
+        val delay = nextUpdate.minus(trueTime.now().time).coerceAtLeast(0)
 
         // Might not restart timer if delay is exactly same as previously,
         // unlikely when working with milliseconds
@@ -143,8 +141,7 @@ class GameViewModel(
         if (runner.nextUpdate == null) {
             return
         }
-        val delay = TimeConverter.timestampToLong(runner.nextUpdate).minus(trueTime.now().time)
-            .coerceAtLeast(0)
+        val delay = runner.nextUpdate.minus(trueTime.now().time).coerceAtLeast(0)
         _state.update {
             it.copy(
                 runner = runner,
