@@ -16,6 +16,6 @@ fun ATM(zone: Zone) {
         snippet = stringResource(
             id = R.string.atm_snippet
         ),
-        icon = BitmapDescriptorFactory.fromResource(R.drawable.agent)
+        icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_atm)
     )
 }

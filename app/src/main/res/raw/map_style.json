@@ -1,0 +1,164 @@
+[
+  {
+    "featureType": "administrative",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "on",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "administrative",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "off",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "land",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "on",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "land",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "off",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "on",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "on",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "transportation",
+    "elementType": "geometry",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "on",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "transportation",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "on",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  },
+  {
+    "featureType": "transportation.transit_station_or_entrance",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "hue": null,
+        "lightness": null,
+        "saturation": null,
+        "gamma": null,
+        "invertLightness": null,
+        "visibility": "off",
+        "color": null,
+        "weight": null,
+        "textScale": null,
+        "zoom": null
+      }
+    ]
+  }
+]

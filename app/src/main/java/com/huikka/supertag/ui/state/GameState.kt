@@ -1,5 +1,6 @@
 package com.huikka.supertag.ui.state
 
+import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
 
@@ -15,5 +16,7 @@ data class GameState(
     val zoneUpdateTimer: TimerState = TimerState(),
     val runnerLocationUpdateTimer: TimerState = TimerState(),
     val runner: Runner? = null,
-    val runnerName: String = ""
+    val runnerName: String = "",
+    val runnerId: String = "",
+    val players: List<Player> = listOf()
 )

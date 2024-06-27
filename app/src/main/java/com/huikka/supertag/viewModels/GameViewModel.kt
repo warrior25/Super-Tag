@@ -11,6 +11,7 @@ import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
+import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.ZoneTypes
@@ -92,7 +93,9 @@ class GameViewModel(
         val runnerName = playerDao.getPlayerById(runnerId)!!.name!!
         _state.update {
             it.copy(
-                isRunner = state.value.userId == runnerId, runnerName = runnerName
+                isRunner = state.value.userId == runnerId,
+                runnerName = runnerName,
+                runnerId = runnerId
             )
         }
     }
@@ -101,6 +104,12 @@ class GameViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             val flow = gameDao.getGameFlow(state.value.gameId!!)
             flow.collect { game ->
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val flow = playerDao.getPlayersByGameIdFlow(state.value.gameId!!)
+            flow.collect {
+                updatePlayers(it)
             }
         }
         if (state.value.isRunner) {
@@ -119,6 +128,14 @@ class GameViewModel(
                     updateRunner(it)
                 }
             }
+        }
+    }
+
+    private fun updatePlayers(players: List<Player>) {
+        _state.update {
+            it.copy(
+                players = players
+            )
         }
     }
 

@@ -38,6 +38,7 @@ import androidx.navigation.NavController
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.rememberCameraPositionState
@@ -175,14 +176,21 @@ fun GameScreen(
             }
 
             val properties by remember {
-                mutableStateOf(MapProperties(isMyLocationEnabled = true))
+                mutableStateOf(
+                    MapProperties(
+                        isMyLocationEnabled = true,
+                        mapStyleOptions = MapStyleOptions.loadRawResourceStyle(
+                            context, R.raw.map_style
+                        )
+                    )
+                )
             }
 
             Box(contentAlignment = Alignment.Center) {
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
-                    properties = properties
+                    properties = properties,
                 ) {
                     Zone(zone = state.playingArea)
 
@@ -205,8 +213,21 @@ fun GameScreen(
                                 latitude = state.runner.latitude,
                                 longitude = state.runner.longitude!!,
                                 accuracy = state.runner.locationAccuracy!!.toDouble(),
-                                icon = BitmapDescriptorFactory.fromResource(R.drawable.agent)
+                                icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_runner)
                             )
+                        }
+                        for (player in state.players) {
+                            if (player.id !in listOf(state.runnerId, state.userId)) {
+                                Player(
+                                    name = player.name!!,
+                                    role = stringResource(id = R.string.chaser),
+                                    latitude = player.latitude!!,
+                                    longitude = player.longitude!!,
+                                    accuracy = player.locationAccuracy!!.toDouble(),
+                                    icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_player),
+                                    color = Color.Magenta
+                                )
+                            }
                         }
                     }
                 }

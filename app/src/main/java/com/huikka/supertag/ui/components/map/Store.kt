@@ -16,6 +16,6 @@ fun Store(zone: Zone) {
         snippet = stringResource(
             id = R.string.store_snippet
         ),
-        icon = BitmapDescriptorFactory.fromResource(R.drawable.agent)
+        icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_store)
     )
 }
