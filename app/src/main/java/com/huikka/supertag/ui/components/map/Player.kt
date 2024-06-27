@@ -1,6 +1,7 @@
 package com.huikka.supertag.ui.components.map
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.LatLng
@@ -19,6 +20,10 @@ fun Player(
     color: Color = Color.Black,
 ) {
     val markerState = rememberMarkerState(position = LatLng(latitude, longitude))
+
+    LaunchedEffect(latitude, longitude) {
+        markerState.position = LatLng(latitude, longitude)
+    }
     if (accuracy > 0) {
         Circle(
             center = LatLng(latitude, longitude),

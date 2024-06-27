@@ -1,6 +1,7 @@
 package com.huikka.supertag.ui.components.map
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.LatLng
@@ -18,6 +19,10 @@ fun Zone(
     icon: BitmapDescriptor? = null
 ) {
     val markerState = rememberMarkerState(position = LatLng(zone.latitude!!, zone.longitude!!))
+
+    LaunchedEffect(zone) {
+        markerState.position = LatLng(zone.latitude, zone.longitude)
+    }
     Circle(
         center = LatLng(zone.latitude, zone.longitude),
         radius = zone.radius!!.toDouble(),

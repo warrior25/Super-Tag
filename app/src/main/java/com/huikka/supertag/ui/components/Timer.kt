@@ -56,7 +56,7 @@ fun Timer(
         mutableLongStateOf(0L)
     }
 
-    val countDownTimer = object : CountDownTimer(startTime, 100) {
+    val countDownTimer = object : CountDownTimer(startTime, 1000) {
         override fun onTick(millisUntilFinished: Long) {
             currentTime = millisUntilFinished
             value = currentTime / totalTime.toFloat()
