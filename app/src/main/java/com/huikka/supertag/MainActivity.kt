@@ -8,116 +8,60 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.app.ActivityCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.huikka.supertag.data.dao.AuthDao
-import com.huikka.supertag.data.dao.GameDao
-import com.huikka.supertag.data.dao.PlayerDao
-import com.huikka.supertag.data.dao.RunnerDao
-import com.huikka.supertag.data.dto.Game
-import com.huikka.supertag.data.helpers.GameStatuses
-import com.huikka.supertag.ui.login.LoginActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.huikka.supertag.data.helpers.PermissionErrors
+import com.huikka.supertag.ui.Navigation
+import com.huikka.supertag.viewModels.GameViewModel
+import com.huikka.supertag.viewModels.LobbySettingsViewModel
+import com.huikka.supertag.viewModels.LobbyViewModel
+import com.huikka.supertag.viewModels.LoginViewModel
+import com.huikka.supertag.viewModels.MainViewModel
+import com.huikka.supertag.viewModels.PermissionErrorViewModel
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var gameDao: GameDao
-    private lateinit var authDao: AuthDao
-    private lateinit var playerDao: PlayerDao
-    private lateinit var runnerDao: RunnerDao
+    private val mainViewModel: MainViewModel by viewModels { MainViewModel.Factory }
+    private val lobbyViewModel: LobbyViewModel by viewModels { LobbyViewModel.Factory }
+    private val loginViewModel: LoginViewModel by viewModels { LoginViewModel.Factory }
+    private val lobbySettingsViewModel: LobbySettingsViewModel by viewModels { LobbySettingsViewModel.Factory }
+    private val gameViewModel: GameViewModel by viewModels { GameViewModel.Factory }
+    private val permissionErrorViewModel: PermissionErrorViewModel by viewModels()
 
-    private lateinit var playerId: String
-
-    // UI elements
-    private lateinit var joinGameButton: Button
-    private lateinit var hostGameButton: FloatingActionButton
-    private lateinit var gameIdEditText: EditText
-    private lateinit var permissionsError: TextView
-    private lateinit var fixPermissionsButton: Button
+    private lateinit var requestBackgroundLocation: ActivityResultLauncher<String>
+    private lateinit var requestFineLocation: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
-        val app = application as STApplication
-        authDao = AuthDao(app)
-        gameDao = GameDao(app)
-        playerDao = PlayerDao(app)
-        runnerDao = RunnerDao(app)
+        setContent {
+            val state by permissionErrorViewModel.state.collectAsState()
 
-        // Setup button actions
-        joinGameButton = findViewById(R.id.joinGameButton)
-        gameIdEditText = findViewById(R.id.gameIdEditText)
-        joinGameButton.setOnClickListener {
-            CoroutineScope(Dispatchers.Main).launch {
-                joinGame(gameIdEditText.text.toString())
-            }
-        }
-
-        val logoutButton = findViewById<Button>(R.id.logoutButton)
-        logoutButton.setOnClickListener {
-            CoroutineScope(Dispatchers.Main).launch {
-                authDao.logout()
-                val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                startActivity(intent)
-            }
-        }
-
-        hostGameButton = findViewById(R.id.hostGameButton)
-        hostGameButton.setOnClickListener {
-            CoroutineScope(Dispatchers.Main).launch {
-                hostGame()
-            }
-        }
-
-        val loading = findViewById<ProgressBar>(R.id.loading)
-
-        CoroutineScope(Dispatchers.Main).launch {
-            val session = authDao.awaitCurrentSession()
-            if (session == null) {
-                val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                startActivity(intent)
-                finish()
-            } else {
-                playerId = authDao.getUser()!!.id
-                val currentGame = gameDao.getCurrentGameInfo(playerId)
-                if (currentGame.gameId != null) {
-                    val gameStatus = gameDao.getGameStatus(currentGame.gameId)
-                    if (gameStatus == GameStatuses.PLAYING) {
-                        startGameActivity()
-                    } else if (gameStatus == GameStatuses.LOBBY) {
-                        startLobbyActivity()
-                    }
+            LaunchedEffect(state.permissionsRequested) {
+                if (state.permissionsRequested) {
+                    requestPermissions()
+                    permissionErrorViewModel.resetPermissionsRequested()
                 }
             }
-            loading.visibility = View.GONE
+
+            Navigation(
+                mainViewModel = mainViewModel,
+                loginViewModel = loginViewModel,
+                lobbyViewModel = lobbyViewModel,
+                lobbySettingsViewModel = lobbySettingsViewModel,
+                gameViewModel = gameViewModel,
+                permissionErrorViewModel = permissionErrorViewModel
+            )
         }
 
-        permissionsError = findViewById(R.id.permissionsInfoText)
-        fixPermissionsButton = findViewById(R.id.fixPermissionsButton)
-
-        var locationPermissionFailed = false
-
-        val requestBackgroundLocation = registerForActivityResult(
+        requestBackgroundLocation = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (!isGranted) {
@@ -126,15 +70,16 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                locationPermissionFailed = true
-                locationPermissionDenied()
+                permissionErrorViewModel.updatePermissionError(PermissionErrors.Denied)
+                Log.d("PERMISSIONS", "Denied background")
             } else {
-                showPermissionsError(false)
+                permissionErrorViewModel.updatePermissionError(null)
+                Log.d("PERMISSIONS", "Granted background")
             }
         }
 
 
-        val requestFineLocation = registerForActivityResult(
+        requestFineLocation = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             if (!isGranted) {
@@ -143,138 +88,67 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                locationPermissionFailed = true
-                locationPermissionDenied()
+                permissionErrorViewModel.updatePermissionError(PermissionErrors.Denied)
+                Log.d("PERMISSIONS", "Denied foreground")
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestBackgroundLocation.launch(
                     Manifest.permission.ACCESS_BACKGROUND_LOCATION
                 )
+                Log.d("PERMISSIONS", "Granted foreground")
             }
         }
+    }
 
-        fixPermissionsButton.setOnClickListener {
-            if (locationPermissionFailed) {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                val uri: Uri = Uri.fromParts("package", packageName, null)
-                intent.data = uri
-                startActivity(intent)
-            } else {
-                requestFineLocation.launch(
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                )
-            }
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    override fun onResume() {
+        super.onResume()
+        // Request notification permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this, arrayOf(
                     Manifest.permission.POST_NOTIFICATIONS,
                 ), 0
             )
         }
-    }
 
-    override fun onResume() {
-        super.onResume()
+        // Check location permissions
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (ActivityCompat.checkSelfPermission(
                     this, Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
+                ) != PackageManager.PERMISSION_GRANTED
             ) {
-                showPermissionsError(false)
+                if (permissionErrorViewModel.state.value.permissionError == null) {
+                    permissionErrorViewModel.updatePermissionError(PermissionErrors.NotRequested)
+                }
             } else {
-                showPermissionsError(true)
+                permissionErrorViewModel.updatePermissionError(null)
             }
         } else {
             if (ActivityCompat.checkSelfPermission(
                     this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
+                ) != PackageManager.PERMISSION_GRANTED
             ) {
-                showPermissionsError(false)
+                if (permissionErrorViewModel.state.value.permissionError == null) {
+                    permissionErrorViewModel.updatePermissionError(PermissionErrors.NotRequested)
+                }
             } else {
-                showPermissionsError(true)
+                permissionErrorViewModel.updatePermissionError(null)
             }
         }
     }
 
-    private fun showPermissionsError(show: Boolean) {
-        if (show) {
-            hostGameButton.visibility = View.GONE
-            joinGameButton.visibility = View.GONE
-            gameIdEditText.visibility = View.GONE
-            permissionsError.visibility = View.VISIBLE
-            fixPermissionsButton.visibility = View.VISIBLE
-
-        } else {
-            hostGameButton.visibility = View.VISIBLE
-            joinGameButton.visibility = View.VISIBLE
-            gameIdEditText.visibility = View.VISIBLE
-            permissionsError.visibility = View.GONE
-            fixPermissionsButton.visibility = View.GONE
-        }
-    }
-
-    private fun locationPermissionDenied() {
-        fixPermissionsButton.text = getText(R.string.open_settings)
-        permissionsError.text = getText(R.string.permissions_denied)
-    }
-
-    private suspend fun hostGame() {
-        var gameId: String
-        while (true) {
-            gameId = List(2) { ('A'..'Z').random() }.joinToString("")
-            if (!gameDao.checkGameExists(gameId)) {
-                break
-            }
-        }
-
-        var err = gameDao.createGame(
-            Game(
-                gameId, "lobby"
+    private fun requestPermissions() {
+        if (permissionErrorViewModel.state.value.permissionError == PermissionErrors.NotRequested) {
+            requestFineLocation.launch(
+                Manifest.permission.ACCESS_FINE_LOCATION
             )
-        )
-
-        if (err != null) {
-            Log.e("HOST", "Failed to host game: $err")
-            return
+        } else if (permissionErrorViewModel.state.value.permissionError == PermissionErrors.Denied) {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            val uri: Uri = Uri.fromParts("package", packageName, null)
+            intent.data = uri
+            startActivity(intent)
         }
-
-        err = playerDao.addToGame(playerId, gameId, true)
-
-        if (err != null) {
-            Log.e("HOST", "Failed to host game: $err")
-            return
-        }
-
-        runnerDao.addGame(gameId)
-
-        startLobbyActivity()
-    }
-
-    private suspend fun joinGame(gameId: String) {
-        val err = playerDao.addToGame(
-            playerId, gameId
-        )
-        if (err != null) {
-            Toast.makeText(
-                applicationContext, "Game $gameId does not exist", Toast.LENGTH_LONG
-            ).show()
-            return
-        }
-        Toast.makeText(
-            applicationContext, "Joined game $gameId", Toast.LENGTH_LONG
-        ).show()
-
-        startLobbyActivity()
-    }
-
-    private fun startLobbyActivity() {
-        val intent = Intent(this, LobbyActivity::class.java)
-        startActivity(intent)
-    }
-
-    private fun startGameActivity() {
-        val intent = Intent(this, GameActivity::class.java)
-        startActivity(intent)
     }
 }

@@ -1,4 +1,6 @@
-package com.huikka.supertag
+/*package com.huikka.supertag
+
+import androidx.appcompat.app.AppCompatActivity
 
 import android.content.Intent
 import android.graphics.Bitmap
@@ -50,8 +52,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 
-class GameActivity : AppCompatActivity() {
-    private lateinit var map: MapView
+class GameActivity : AppCompatActivity() {private lateinit var map: MapView
 
     private lateinit var myLocationOverlay: MyLocationNewOverlay
 
@@ -140,6 +141,7 @@ class GameActivity : AppCompatActivity() {
         map.overlays.add(cr)
 
         lifecycleScope.launch(Dispatchers.IO) {
+            authDao.awaitCurrentSession()
             playerId = authDao.getUser()!!.id
             gameId = gameDao.getCurrentGameInfo(playerId).gameId!!
             runnerId = gameDao.getRunnerId(gameId)!!
@@ -478,7 +480,8 @@ class GameActivity : AppCompatActivity() {
             items.add(overlayItem)
         }
 
-        val overlay = ItemizedIconOverlay(this,
+        val overlay = ItemizedIconOverlay(
+            this,
             items,
             object : ItemizedIconOverlay.OnItemGestureListener<OverlayItem> {
                 override fun onItemSingleTapUp(index: Int, item: OverlayItem?): Boolean {
@@ -507,4 +510,4 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
-}
+}*/

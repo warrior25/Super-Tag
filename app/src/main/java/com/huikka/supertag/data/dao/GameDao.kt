@@ -83,13 +83,8 @@ class GameDao(application: STApplication) {
         }
     }
 
-    suspend fun createGame(game: Game): Error? {
-        try {
-            db.from("games").insert(game)
-        } catch (e: Exception) {
-            return Error(e)
-        }
-        return null
+    suspend fun createGame(game: Game) {
+        db.from("games").insert(game)
     }
 
     suspend fun removeGame(id: String): Error? {
@@ -113,21 +108,6 @@ class GameDao(application: STApplication) {
         }.decodeSingle<CurrentGame>()
     }
 
-    suspend fun setHeadStart(gameId: String, headStart: Int): Error? {
-        return try {
-            db.from("games").update({
-                set("head_start", headStart)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
-            }
-            null
-        } catch (e: Exception) {
-            Error(e)
-        }
-    }
-
     suspend fun getHeadStart(gameId: String): Int? {
         return db.from("games").select(columns = Columns.list("head_start")) {
             filter {
@@ -144,23 +124,18 @@ class GameDao(application: STApplication) {
         }.decodeSingle<Game>().initialTrackingInterval
     }
 
-    suspend fun addMoney(gameId: String, side: Sides, amount: Int): Error? {
-        return try {
-            val newMoney = getMoney(gameId, side)!! + amount
-            var column = "chaser_money"
-            if (side == Sides.Runner) {
-                column = "runner_money"
+    suspend fun addMoney(gameId: String, side: Sides, amount: Int) {
+        val newMoney = getMoney(gameId, side)!! + amount
+        var column = "chaser_money"
+        if (side == Sides.Runner) {
+            column = "runner_money"
+        }
+        db.from("games").update({
+            set(column, newMoney)
+        }) {
+            filter {
+                eq("id", gameId)
             }
-            db.from("games").update({
-                set(column, newMoney)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
-            }
-            null
-        } catch (e: Exception) {
-            Error(e)
         }
     }
 
@@ -198,48 +173,15 @@ class GameDao(application: STApplication) {
 
     suspend fun changeSettings(
         gameId: String, chaserMoney: Int, runnerMoney: Int, headStart: Int
-    ): Error? {
-        return try {
-            db.from("games").update({
-                set("chaser_money", chaserMoney)
-                set("runner_money", runnerMoney)
-                set("head_start", headStart)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
+    ) {
+        db.from("games").update({
+            set("chaser_money", chaserMoney)
+            set("runner_money", runnerMoney)
+            set("head_start", headStart)
+        }) {
+            filter {
+                eq("id", gameId)
             }
-            null
-        } catch (e: Exception) {
-            Log.e("changeSettings", e.toString())
-            Error(e)
-        }
-    }
-
-    suspend fun getActiveRunnerZones(gameId: String): List<Int>? {
-        return try {
-            db.from("games").select(columns = Columns.list("active_runner_zones")) {
-                filter {
-                    eq("id", gameId)
-                }
-            }.decodeSingle<Game>().activeRunnerZones
-        } catch (e: Exception) {
-            Log.d("getActiveRunnerZones", e.toString())
-            null
-        }
-    }
-
-    suspend fun setActiveRunnerZones(gameId: String, zones: List<Int>) {
-        try {
-            db.from("games").update({
-                set("active_runner_zones", zones)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d("getActiveRunnerZones", e.toString())
         }
     }
 }
