@@ -16,5 +16,6 @@ data class Player(
     @SerialName("icon") val icon: String? = null,
     @SerialName("game_id") val gameId: String? = null,
     @SerialName("is_host") val isHost: Boolean? = null,
-    @SerialName("zone_id") val zoneId: Int? = null
+    @SerialName("zone_id") val zoneId: Int? = null,
+    @SerialName("entered_zone") val enteredZone: Long? = null
 )

@@ -1,13 +1,11 @@
 package com.huikka.supertag.data.dao
 
-import android.util.Log
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.helpers.Message
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.filter.FilterOperation
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.broadcastFlow
@@ -15,7 +13,6 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.selectAsFlow
 import io.github.jan.supabase.realtime.selectSingleValueAsFlow
 import kotlinx.coroutines.flow.Flow
-import java.sql.SQLException
 
 class PlayerDao(application: STApplication) {
     private val supabase = application.supabase
@@ -56,27 +53,18 @@ class PlayerDao(application: STApplication) {
         speed: Float,
         bearing: Float,
         zoneId: Int?
-    ): Error? {
-        return try {
-            db.from("players").update({
-                set("latitude", latitude)
-                set("longitude", longitude)
-                set("location_accuracy", locationAccuracy)
-                set("speed", speed)
-                set("bearing", bearing)
-                set("zone_id", zoneId)
-            }) {
-                filter {
-                    eq("id", id)
-                }
+    ) {
+        db.from("players").update({
+            set("latitude", latitude)
+            set("longitude", longitude)
+            set("location_accuracy", locationAccuracy)
+            set("speed", speed)
+            set("bearing", bearing)
+            set("zone_id", zoneId)
+        }) {
+            filter {
+                eq("id", id)
             }
-            null
-        } catch (e: SQLException) {
-            Log.e("LOCATION", "SQL error updating player location for $id: ${e.message}", e)
-            Error(e)
-        } catch (e: Exception) {
-            Log.d("LOCATION", "Error updating player location for $id: $e")
-            Error(e)
         }
     }
 
@@ -107,13 +95,23 @@ class PlayerDao(application: STApplication) {
         }.decodeSingleOrNull<Player>()
     }
 
-    suspend fun getPlayerLocation(id: String): Player {
-        return db.from("players").select(
-            columns = (Columns.list(
-                "latitude", "longitude", "location_accuracy", "speed", "bearing"
-            ))
-        ) {
-            filter { eq("id", id) }
-        }.decodeSingle<Player>()
+    suspend fun setEnteredZone(id: String, time: Long) {
+        db.from("players").update({
+            set("entered_zone", time)
+        }) {
+            filter {
+                eq("id", id)
+            }
+        }
+    }
+
+    suspend fun clearEnteredZone(id: String) {
+        db.from("players").update({
+            setToNull("entered_zone")
+        }) {
+            filter {
+                eq("id", id)
+            }
+        }
     }
 }

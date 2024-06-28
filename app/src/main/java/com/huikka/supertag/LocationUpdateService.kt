@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.CountDownTimer
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -25,6 +26,7 @@ import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
 import com.huikka.supertag.data.helpers.ServiceActions
 import com.huikka.supertag.data.helpers.ServiceStatus
+import com.huikka.supertag.data.helpers.Sides
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.data.helpers.minute
 import com.instacart.truetime.time.TrueTime
@@ -56,6 +58,11 @@ class LocationUpdateService : Service(), LocationListener {
     private var runnerZones: MutableList<Zone> = mutableListOf()
     private var chaserZones: MutableList<Zone> = mutableListOf()
     private var activeZoneIds: List<Int> = listOf()
+    private var lastZone: Zone? = null
+
+    private var isTimerRunning = false
+    private var isTimerCancelled = false
+    private var zonePresenceTimer: CountDownTimer? = null
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
@@ -100,9 +107,11 @@ class LocationUpdateService : Service(), LocationListener {
                         activateRunnerLocationUpdates()
                     }
                 }
+                ServiceStatus.setServiceRunning(applicationContext, true)
             }
 
             ServiceActions.STOP_SERVICE -> {
+                ServiceStatus.setServiceRunning(applicationContext, false)
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelfResult(startId)
             }
@@ -114,12 +123,38 @@ class LocationUpdateService : Service(), LocationListener {
     override fun onLocationChanged(loc: Location) {
         CoroutineScope(Dispatchers.IO).launch {
             myLocation = loc
-            val zoneId = zoneManager.getZoneFromLocation(loc)?.id
-            val error = playerDao.updatePlayerLocation(
-                userId, loc.latitude, loc.longitude, loc.accuracy, loc.speed, loc.bearing, zoneId
-            )
-            if (error != null) {
-                Log.e("LOCATION", "Failed to update location: ${error.message}")
+            try {
+                val zone = zoneManager.getZoneFromLocation(loc)
+                lastZone = zone
+                playerDao.updatePlayerLocation(
+                    userId,
+                    loc.latitude,
+                    loc.longitude,
+                    loc.accuracy,
+                    loc.speed,
+                    loc.bearing,
+                    zone?.id
+                )
+                val timerDuration = when (lastZone?.type) {
+                    ZoneTypes.ATM -> Config.ATM_TIME
+
+                    ZoneTypes.STORE -> Config.STORE_TIME
+
+                    ZoneTypes.ATTRACTION -> Config.ATTRACTION_TIME
+
+                    else -> {
+                        isTimerCancelled = true
+                        zonePresenceTimer?.cancel()
+                        playerDao.clearEnteredZone(userId)
+                        return@launch
+                    }
+                }
+                if (!isTimerRunning && isValidZone()) {
+                    startZonePresenceTimer(timerDuration)
+                    playerDao.setEnteredZone(userId, trueTime.now().time)
+                }
+            } catch (e: Exception) {
+                Log.e("LOCATION", "Failed to update location: $e")
             }
         }
     }
@@ -208,6 +243,53 @@ class LocationUpdateService : Service(), LocationListener {
                 nextUpdate = nextUpdate
             )
             updateRunnerLocation(initialTrackingInterval * minute)
+        }
+    }
+
+    private fun addMoney() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val side = if (isRunner) {
+                Sides.Runner
+            } else {
+                Sides.Chasers
+            }
+
+            val amount = when (lastZone?.type) {
+                ZoneTypes.ATM -> Config.ATM_MONEY
+                ZoneTypes.STORE -> Config.STORE_MONEY
+                ZoneTypes.ATTRACTION -> Config.ATTRACTION_MONEY
+                else -> 0
+            }
+            try {
+                gameDao.addMoney(gameId, side, amount)
+            } catch (e: Exception) {
+                Log.e("Service", "Failed to add money: $e")
+            }
+        }
+    }
+
+    private fun isValidZone(): Boolean {
+        return (!isRunner && lastZone?.type in ZoneTypes.CHASER_ZONE_TYPES) || (isRunner && lastZone?.id in activeZoneIds)
+    }
+
+    private fun startZonePresenceTimer(duration: Long) {
+        CoroutineScope(Dispatchers.Main).launch {
+            isTimerRunning = true
+            isTimerCancelled = true
+            zonePresenceTimer?.cancel()
+            isTimerCancelled = false
+            zonePresenceTimer = object : CountDownTimer(duration, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                }
+
+                override fun onFinish() {
+                    if (!isTimerCancelled) {
+                        addMoney()
+                    }
+                    isTimerRunning = false
+                    isTimerCancelled = false
+                }
+            }.start()
         }
     }
 

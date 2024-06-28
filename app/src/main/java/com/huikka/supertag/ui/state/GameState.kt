@@ -13,10 +13,13 @@ data class GameState(
     val runnerZones: List<Zone> = listOf(),
     val chaserZones: List<Zone> = listOf(),
     val activeRunnerZones: List<Zone> = listOf(),
-    val zoneUpdateTimer: TimerState = TimerState(),
-    val runnerLocationUpdateTimer: TimerState = TimerState(),
+    val zoneUpdateTime: Long = 0,
+    val runnerLocationUpdateTime: Long = 0,
     val runner: Runner? = null,
     val runnerName: String = "",
     val runnerId: String = "",
-    val players: List<Player> = listOf()
+    val players: List<Player> = listOf(),
+    val money: Int = 0,
+    val currentZone: Zone? = null,
+    val zonePresenceTimer: TimerState = TimerState()
 )

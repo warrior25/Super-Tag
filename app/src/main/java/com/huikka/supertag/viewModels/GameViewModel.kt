@@ -11,9 +11,11 @@ import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
+import com.huikka.supertag.data.dto.Game
 import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
+import com.huikka.supertag.data.helpers.Config
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.ui.events.GameEvent
 import com.huikka.supertag.ui.state.GameState
@@ -103,7 +105,8 @@ class GameViewModel(
     private fun listenToGameDataChanges() {
         viewModelScope.launch(Dispatchers.IO) {
             val flow = gameDao.getGameFlow(state.value.gameId!!)
-            flow.collect { game ->
+            flow.collect {
+                updateGame(it)
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
@@ -131,12 +134,56 @@ class GameViewModel(
         }
     }
 
-    private fun updatePlayers(players: List<Player>) {
+    private fun updateGame(game: Game) {
+        val money = if (state.value.isRunner) {
+            game.runnerMoney
+        } else {
+            game.chaserMoney
+        }
         _state.update {
             it.copy(
-                players = players
+                money = money!!
             )
         }
+    }
+
+    private suspend fun updatePlayers(players: List<Player>) {
+        val currentPlayer = players.find { it.id == state.value.userId }
+        var zone: Zone? = null
+        if (currentPlayer!!.zoneId != null) {
+            zone = zoneDao.getZoneById(currentPlayer.zoneId!!)
+        }
+
+
+        val delay = if (zone != null && currentPlayer.enteredZone != null) {
+            calculateZonePresenceTime(zone, currentPlayer.enteredZone)
+        } else {
+            TimerState()
+        }
+
+        _state.update {
+            it.copy(
+                players = players, currentZone = zone, zonePresenceTimer = delay
+            )
+        }
+    }
+
+    private fun calculateZonePresenceTime(zone: Zone, enterTime: Long): TimerState {
+        val zoneCaptureTime: Long? =
+            if (state.value.isRunner && zone in state.value.activeRunnerZones) {
+                when (zone.type) {
+                    ZoneTypes.ATTRACTION -> Config.ATTRACTION_TIME
+                    else -> null
+                }
+            } else {
+                when (zone.type) {
+                    ZoneTypes.ATM -> Config.ATM_TIME
+                    ZoneTypes.STORE -> Config.STORE_TIME
+                    else -> null
+                }
+            }
+        val timeInZone = trueTime.now().time.minus(enterTime)
+        return TimerState(zoneCaptureTime?.minus(timeInZone), zoneCaptureTime)
     }
 
     private fun updateActiveRunnerZones(zoneIds: List<Int>, nextUpdate: Long) {
@@ -147,9 +194,7 @@ class GameViewModel(
         // unlikely when working with milliseconds
         _state.update {
             it.copy(
-                activeRunnerZones = activeZones, zoneUpdateTimer = TimerState(
-                    time = delay
-                ), isInitialized = true
+                activeRunnerZones = activeZones, zoneUpdateTime = delay, isInitialized = true
             )
         }
     }
@@ -161,9 +206,7 @@ class GameViewModel(
         val delay = runner.nextUpdate.minus(trueTime.now().time).coerceAtLeast(0)
         _state.update {
             it.copy(
-                runner = runner,
-                runnerLocationUpdateTimer = TimerState(time = delay),
-                isInitialized = true
+                runner = runner, runnerLocationUpdateTime = delay, isInitialized = true
             )
         }
     }

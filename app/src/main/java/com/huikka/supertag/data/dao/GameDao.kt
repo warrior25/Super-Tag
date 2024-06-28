@@ -124,23 +124,18 @@ class GameDao(application: STApplication) {
         }.decodeSingle<Game>().initialTrackingInterval
     }
 
-    suspend fun addMoney(gameId: String, side: Sides, amount: Int): Error? {
-        return try {
-            val newMoney = getMoney(gameId, side)!! + amount
-            var column = "chaser_money"
-            if (side == Sides.Runner) {
-                column = "runner_money"
+    suspend fun addMoney(gameId: String, side: Sides, amount: Int) {
+        val newMoney = getMoney(gameId, side)!! + amount
+        var column = "chaser_money"
+        if (side == Sides.Runner) {
+            column = "runner_money"
+        }
+        db.from("games").update({
+            set(column, newMoney)
+        }) {
+            filter {
+                eq("id", gameId)
             }
-            db.from("games").update({
-                set(column, newMoney)
-            }) {
-                filter {
-                    eq("id", gameId)
-                }
-            }
-            null
-        } catch (e: Exception) {
-            Error(e)
         }
     }
 

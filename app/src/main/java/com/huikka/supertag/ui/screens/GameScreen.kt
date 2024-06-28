@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.BottomAppBar
@@ -25,14 +24,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
@@ -44,14 +41,16 @@ import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.huikka.supertag.LocationUpdateService
 import com.huikka.supertag.R
-import com.huikka.supertag.data.helpers.Config
 import com.huikka.supertag.data.helpers.ServiceActions
 import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.ui.MainScreenRoute
 import com.huikka.supertag.ui.components.ConfirmationDialog
 import com.huikka.supertag.ui.components.Loading
-import com.huikka.supertag.ui.components.Timer
+import com.huikka.supertag.ui.components.hud.ChaserHUD
+import com.huikka.supertag.ui.components.hud.ChaserTimers
+import com.huikka.supertag.ui.components.hud.RunnerHUD
+import com.huikka.supertag.ui.components.hud.RunnerTimers
 import com.huikka.supertag.ui.components.map.ATM
 import com.huikka.supertag.ui.components.map.Attraction
 import com.huikka.supertag.ui.components.map.Player
@@ -78,7 +77,6 @@ fun GameScreen(
             val intent = Intent(context, LocationUpdateService::class.java)
             intent.setAction(ServiceActions.START_SERVICE)
             startForegroundService(context, intent)
-            ServiceStatus.setServiceRunning(context, true)
         }
         onEvent(GameEvent.OnInit)
     }
@@ -121,24 +119,14 @@ fun GameScreen(
     }, bottomBar = {
         BottomAppBar(actions = {
             if (state.isRunner) {
-                Timer(
-                    startTime = state.zoneUpdateTimer.time,
-                    totalTime = Config.RUNNER_ZONE_SHUFFLE_TIME,
-                    handleColor = MaterialTheme.colorScheme.primary,
-                    inactiveBarColor = Color.Gray,
-                    activeBarColor = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(75.dp),
-                    title = stringResource(id = R.string.zone)
+                RunnerTimers(
+                    zoneUpdateTime = state.zoneUpdateTime,
+                    zonePresenceTimer = state.zonePresenceTimer
                 )
             } else {
-                Timer(
-                    startTime = state.runnerLocationUpdateTimer.time,
-                    totalTime = state.runnerLocationUpdateTimer.time,
-                    handleColor = MaterialTheme.colorScheme.primary,
-                    inactiveBarColor = Color.Gray,
-                    activeBarColor = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.size(75.dp),
-                    title = stringResource(id = R.string.runner)
+                ChaserTimers(
+                    runnerLocationUpdateTime = state.runnerLocationUpdateTime,
+                    zonePresenceTimer = state.zonePresenceTimer,
                 )
             }
         })
@@ -158,7 +146,6 @@ fun GameScreen(
                     val intent = Intent(context, LocationUpdateService::class.java)
                     intent.setAction(ServiceActions.STOP_SERVICE)
                     startForegroundService(context, intent)
-                    ServiceStatus.setServiceRunning(context, false)
                     onEvent(GameEvent.OnLeaveGame)
                     navController.navigate(MainScreenRoute)
                 },
@@ -186,7 +173,7 @@ fun GameScreen(
                 )
             }
 
-            Box(contentAlignment = Alignment.Center) {
+            Box {
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
@@ -230,6 +217,16 @@ fun GameScreen(
                             }
                         }
                     }
+                }
+
+                if (state.isRunner) {
+                    RunnerHUD(
+                        money = state.money,
+                        currentZone = state.currentZone,
+                        activeZones = state.activeRunnerZones
+                    )
+                } else {
+                    ChaserHUD(money = state.money, currentZone = state.currentZone)
                 }
             }
         }
