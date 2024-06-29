@@ -80,7 +80,7 @@ class GameViewModel(
     private suspend fun getUserData() {
         authDao.awaitCurrentSession()
         val userId = authDao.getUser()!!.id
-        val gameId = gameDao.getCurrentGameInfo(userId).gameId!!
+        val gameId = gameDao.getCurrentGameInfo(userId).gameId
         _state.update {
             it.copy(
                 gameId = gameId, userId = userId
@@ -108,7 +108,7 @@ class GameViewModel(
 
     private suspend fun getRunnerData() {
         val runnerId = gameDao.getRunnerId(state.value.gameId)!!
-        val runnerName = playerDao.getPlayerById(runnerId)!!.name!!
+        val runnerName = playerDao.getPlayerById(runnerId)!!.name
         val side = if (state.value.userId == runnerId) {
             Sides.Runner
         } else {
@@ -161,7 +161,7 @@ class GameViewModel(
         }
         _state.update {
             it.copy(
-                money = money!!
+                money = money
             )
         }
         updateCardStates()

@@ -66,7 +66,7 @@ class RunnerDao(application: STApplication) {
 
     @OptIn(SupabaseExperimental::class)
     fun getRunnerFlow(gameId: String): Flow<Runner> {
-        return db.from("runners").selectSingleValueAsFlow(PrimaryKey("game_id") { it.gameId!! }) {
+        return db.from("runners").selectSingleValueAsFlow(PrimaryKey("game_id") { it.gameId }) {
             eq("game_id", gameId)
         }
     }

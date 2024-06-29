@@ -26,7 +26,7 @@ fun ChaserHUD(money: Int, currentZone: Zone?) {
         CommonHUD(money = money)
         if (currentZone?.type in ZoneType.CHASER_ZONE_TYPES) {
             InfoChip(
-                text = currentZone!!.name!!,
+                text = currentZone!!.name,
                 icon = ImageVector.vectorResource(id = R.drawable.location_pin)
             )
         }

@@ -68,9 +68,9 @@ fun LobbyScreen(
                     navController.navigate(
                         LobbySettingsScreenRoute(
                             state.gameId,
-                            state.game!!.headStart!!,
-                            state.game.runnerMoney!!,
-                            state.game.chaserMoney!!
+                            state.game!!.headStart,
+                            state.game.runnerMoney,
+                            state.game.chaserMoney
                         )
                     )
                 })
@@ -99,7 +99,7 @@ fun LobbyScreen(
                             player = player, isRunner = player.id == state.game!!.runnerId
                         ) {
                             if (state.isHost) {
-                                onEvent(LobbyEvent.OnRunnerChange(player.id!!))
+                                onEvent(LobbyEvent.OnRunnerChange(player.id))
                             }
                         }
                     }

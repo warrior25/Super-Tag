@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Runner(
-    @SerialName("game_id") val gameId: String? = null,
+    @SerialName("game_id") val gameId: String = "",
     @SerialName("latitude") val latitude: Double? = null,
     @SerialName("longitude") val longitude: Double? = null,
     @SerialName("next_update") val nextUpdate: Long? = null,

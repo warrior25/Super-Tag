@@ -79,7 +79,7 @@ class MainViewModel(
         if (playerId != null) {
             _state.update {
                 it.copy(
-                    username = playerDao.getPlayerById(playerId)!!.name ?: ""
+                    username = playerDao.getPlayerById(playerId)!!.name
                 )
             }
         }

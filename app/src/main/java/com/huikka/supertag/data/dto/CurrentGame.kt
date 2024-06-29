@@ -6,5 +6,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CurrentGame(
 
-    @SerialName("game_id") val gameId: String?, @SerialName("is_host") val isHost: Boolean
+    @SerialName("game_id") val gameId: String = "",
+    @SerialName("is_host") val isHost: Boolean = false
 )

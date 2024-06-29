@@ -96,24 +96,4 @@ class PlayerDao(application: STApplication) {
             }
         }.decodeSingleOrNull<Player>()
     }
-
-    suspend fun setEnteredZone(id: String, time: Long) {
-        db.from("players").update({
-            set("entered_zone", time)
-        }) {
-            filter {
-                eq("id", id)
-            }
-        }
-    }
-
-    suspend fun clearEnteredZone(id: String) {
-        db.from("players").update({
-            setToNull("entered_zone")
-        }) {
-            filter {
-                eq("id", id)
-            }
-        }
-    }
 }

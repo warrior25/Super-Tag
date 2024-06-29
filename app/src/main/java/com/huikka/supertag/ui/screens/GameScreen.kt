@@ -234,7 +234,7 @@ fun GameScreen(
                         for (player in state.players) {
                             if (player.id !in listOf(state.runnerId, state.userId)) {
                                 Player(
-                                    name = player.name!!,
+                                    name = player.name,
                                     role = stringResource(id = R.string.chaser),
                                     latitude = player.latitude!!,
                                     longitude = player.longitude!!,

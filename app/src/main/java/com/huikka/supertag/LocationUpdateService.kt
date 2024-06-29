@@ -143,7 +143,6 @@ class LocationUpdateService : Service(), LocationListener {
                     zonePresenceTimer?.cancel()
                 } else if (!isTimerRunning) {
                     startZonePresenceTimer(timerDuration)
-                    playerDao.setEnteredZone(userId, trueTime.now().time)
                     enteredZone = trueTime.now().time
                 }
                 playerDao.updatePlayerLocation(
@@ -165,10 +164,10 @@ class LocationUpdateService : Service(), LocationListener {
     private suspend fun initData() {
         authDao.awaitCurrentSession()
         userId = authDao.getUser()!!.id
-        gameId = gameDao.getCurrentGameInfo(userId).gameId!!
+        gameId = gameDao.getCurrentGameInfo(userId).gameId
         isRunner = gameDao.getRunnerId(gameId) == userId
-        initialTrackingInterval = gameDao.getInitialTrackingInterval(gameId)!!.toLong()
-        headStart = gameDao.getHeadStart(gameId)!!.toLong()
+        initialTrackingInterval = gameDao.getInitialTrackingInterval(gameId).toLong()
+        headStart = gameDao.getHeadStart(gameId).toLong()
         getZones()
     }
 
@@ -194,12 +193,12 @@ class LocationUpdateService : Service(), LocationListener {
                 zone2 = runnerZones.random()
             } while (zone1.id == zone2.id || zone2.id in activeZoneIds)
 
-            activeZoneIds = listOf(zone1.id!!, zone2.id!!)
+            activeZoneIds = listOf(zone1.id, zone2.id)
 
             val nextUpdateTime = trueTime.now().time + Config.RUNNER_ZONE_SHUFFLE_TIME
 
             activeRunnerZonesDao.setActiveRunnerZones(
-                gameId = gameId, zones = listOf(zone1.id!!, zone2.id!!), nextUpdate = nextUpdateTime
+                gameId = gameId, zones = listOf(zone1.id, zone2.id), nextUpdate = nextUpdateTime
             )
 
             delay(Config.RUNNER_ZONE_SHUFFLE_TIME)
@@ -237,6 +236,8 @@ class LocationUpdateService : Service(), LocationListener {
 
             val now = trueTime.now().time
             nextUpdate = trueTime.now().time + initialTrackingInterval * minute
+
+            // TODO: Can crash here if runner has not moved
             runnerDao.setLocation(
                 gameId = gameId,
                 latitude = myLocation.latitude,

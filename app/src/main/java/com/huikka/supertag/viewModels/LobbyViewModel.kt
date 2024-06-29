@@ -66,7 +66,7 @@ class LobbyViewModel(
                 val player = playerDao.getPlayerById(playerId)!!
                 _state.update {
                     it.copy(
-                        isHost = player.isHost!!
+                        isHost = player.isHost
                     )
                 }
             } catch (e: Exception) {
