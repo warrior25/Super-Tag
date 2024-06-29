@@ -60,7 +60,6 @@ fun LobbyScreen(
             ), title = {
                 Text(state.gameId)
             }, actions = {
-                // TODO: Remove settings button from non-host players
                 LobbyActionButtons({
                     onEvent(LobbyEvent.OnLeaveGameClick)
                     navController.navigateUp()
@@ -73,7 +72,7 @@ fun LobbyScreen(
                             state.game.chaserMoney!!
                         )
                     )
-                })
+                }, state.isHost)
             })
         },
     ) { padding ->
