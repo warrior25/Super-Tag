@@ -42,7 +42,6 @@ fun Timer(
     inactiveBarColor: Color,
     activeBarColor: Color,
     modifier: Modifier = Modifier,
-    initialValue: Float = 1f,
     strokeWidth: Dp = 5.dp,
     title: String
 ) {
@@ -50,7 +49,7 @@ fun Timer(
         mutableStateOf(IntSize.Zero)
     }
     var value by remember {
-        mutableFloatStateOf(initialValue)
+        mutableFloatStateOf(1f)
     }
     var currentTime by remember {
         mutableLongStateOf(0L)

@@ -1,5 +1,6 @@
 package com.huikka.supertag.viewModels
 
+import android.os.CountDownTimer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -56,6 +57,7 @@ class GameViewModel(
             is GameEvent.OnInit -> initData()
             is GameEvent.OnLeaveGame -> leaveGame()
             is GameEvent.OnCardActivate -> activateCard(event.cardIndex)
+            is GameEvent.OnCardDeactivate -> deactivateCard(event.cardIndex)
         }
     }
 
@@ -103,7 +105,7 @@ class GameViewModel(
     }
 
     private suspend fun getRunnerData() {
-        val runnerId = gameDao.getRunnerId(state.value.gameId!!)!!
+        val runnerId = gameDao.getRunnerId(state.value.gameId)!!
         val runnerName = playerDao.getPlayerById(runnerId)!!.name!!
         val side = if (state.value.userId == runnerId) {
             Sides.Runner
@@ -119,20 +121,20 @@ class GameViewModel(
 
     private fun listenToGameDataChanges() {
         viewModelScope.launch(Dispatchers.IO) {
-            val flow = gameDao.getGameFlow(state.value.gameId!!)
+            val flow = gameDao.getGameFlow(state.value.gameId)
             flow.collect {
                 updateGame(it)
             }
         }
         viewModelScope.launch(Dispatchers.IO) {
-            val flow = playerDao.getPlayersByGameIdFlow(state.value.gameId!!)
+            val flow = playerDao.getPlayersByGameIdFlow(state.value.gameId)
             flow.collect {
                 updatePlayers(it)
             }
         }
         if (state.value.side == Sides.Runner) {
             viewModelScope.launch(Dispatchers.IO) {
-                val flow = activeRunnerZonesDao.getActiveRunnerZonesFlow(state.value.gameId!!)
+                val flow = activeRunnerZonesDao.getActiveRunnerZonesFlow(state.value.gameId)
                 flow.collect {
                     if (it.activeZoneIds != null) {
                         updateActiveRunnerZones(it.activeZoneIds, it.nextUpdate!!)
@@ -141,7 +143,7 @@ class GameViewModel(
             }
         } else {
             viewModelScope.launch(Dispatchers.IO) {
-                val flow = runnerDao.getRunnerFlow(state.value.gameId!!)
+                val flow = runnerDao.getRunnerFlow(state.value.gameId)
                 flow.collect {
                     updateRunner(it)
                 }
@@ -164,20 +166,35 @@ class GameViewModel(
     }
 
     private fun updateCardStates() {
-        _cardStates.update { cardStates ->
-            cardStates.map { card ->
-                card.copy(enabled = state.value.money >= card.cost)
+        viewModelScope.launch(Dispatchers.IO) {
+            val status = cardsDao.getCardsStatus(state.value.gameId)
+
+            _cardStates.update { cardStates ->
+                cardStates.mapIndexed { index, cardState ->
+                    val timeRemaining =
+                        status.cardsActiveUntil?.get(index)?.minus(trueTime.now().time)
+                            ?.coerceAtLeast(0) ?: 0
+
+                    if (timeRemaining > 0L && !cardState.timerState.isRunning) {
+                        startCardTimer(index, timeRemaining)
+                    }
+                    cardState.copy(
+                        enabled = state.value.money >= cardState.cost && timeRemaining == 0L
+                    )
+                }
             }
         }
     }
 
     private fun activateCard(cardIndex: Int) {
         viewModelScope.launch(Dispatchers.IO) {
-            val activeUntil = trueTime.now().time + cardStates.value[cardIndex].activeTime
+            val activeUntil = trueTime.now().time + cardStates.value[cardIndex].timerState.totalTime
             _cardStates.update { cardStates ->
                 cardStates.mapIndexed { index, card ->
                     if (index == cardIndex) {
-                        card.copy(enabled = false, activeUntil = activeUntil)
+                        card.copy(
+                            enabled = false, activeUntil = activeUntil
+                        )
                     } else {
                         card
                     }
@@ -187,15 +204,30 @@ class GameViewModel(
             val statusList = cardStates.value.map {
                 it.activeUntil
             }
-            cardsDao.updateCardsStatus(gameId = state.value.gameId!!, status = statusList)
+            cardsDao.updateCardsStatus(gameId = state.value.gameId, status = statusList)
 
             gameDao.reduceMoney(
-                gameId = state.value.gameId!!,
+                gameId = state.value.gameId,
                 side = state.value.side,
                 amount = cardStates.value[cardIndex].cost
             )
 
+            startCardTimer(cardIndex)
             cardActions[0].invoke(null)
+        }
+    }
+
+    private fun deactivateCard(cardIndex: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _cardStates.update { cardStates ->
+                cardStates.mapIndexed { index, card ->
+                    if (index == cardIndex) {
+                        card.copy(timeRemaining = 0)
+                    } else {
+                        card
+                    }
+                }
+            }
         }
     }
 
@@ -219,28 +251,30 @@ class GameViewModel(
             )
         }
 
-        if (cardStates.value[0].activeUntil != null) {
+        if (cardStates.value[0].timerState.currentTime != 0L) {
             val runner = players.find { it.id == state.value.runnerId }!!
             updateLiveRunnerLocation(runner)
         }
     }
 
     private fun calculateZonePresenceTime(zone: Zone, enterTime: Long): TimerState {
-        val zoneCaptureTime: Long? =
+        val zoneCaptureTime: Long =
             if (state.value.side == Sides.Runner && zone in state.value.activeRunnerZones) {
                 when (zone.type) {
                     ZoneTypes.ATTRACTION -> Config.ATTRACTION_TIME
-                    else -> null
+                    else -> 0
                 }
             } else {
                 when (zone.type) {
                     ZoneTypes.ATM -> Config.ATM_TIME
                     ZoneTypes.STORE -> Config.STORE_TIME
-                    else -> null
+                    else -> 0
                 }
             }
         val timeInZone = trueTime.now().time.minus(enterTime)
-        return TimerState(zoneCaptureTime?.minus(timeInZone), zoneCaptureTime)
+        return TimerState(
+            currentTime = zoneCaptureTime.minus(timeInZone), totalTime = zoneCaptureTime
+        )
     }
 
     private fun updateActiveRunnerZones(zoneIds: List<Int>, nextUpdate: Long) {
@@ -271,9 +305,9 @@ class GameViewModel(
     private fun leaveGame() {
         viewModelScope.launch(Dispatchers.IO) {
             if (state.value.side == Sides.Runner) {
-                gameDao.removeGame(state.value.gameId!!)
+                gameDao.removeGame(state.value.gameId)
             } else {
-                playerDao.removeFromGame(state.value.userId!!)
+                playerDao.removeFromGame(state.value.userId)
             }
         }
     }
@@ -290,6 +324,63 @@ class GameViewModel(
                     )
                 )
             }
+        }
+    }
+
+    private fun startCardTimer(cardIndex: Int, startTime: Long? = null) {
+        viewModelScope.launch(Dispatchers.Main) {
+            val timerState = cardStates.value[cardIndex].timerState
+            timerState.timer?.cancel()
+
+            val cardTimer = object : CountDownTimer(startTime ?: timerState.totalTime, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    _cardStates.update { cardStates ->
+                        cardStates.mapIndexed { index, card ->
+                            if (index == cardIndex) {
+                                card.copy(
+                                    timerState = card.timerState.copy(
+                                        currentTime = millisUntilFinished, isRunning = true
+                                    )
+                                )
+                            } else {
+                                card
+                            }
+                        }
+                    }
+                }
+
+                override fun onFinish() {
+                    _cardStates.update { cardStates ->
+                        cardStates.mapIndexed { index, card ->
+                            if (index == cardIndex) {
+                                card.copy(
+                                    timerState = card.timerState.copy(
+                                        isRunning = false
+                                    )
+                                )
+                            } else {
+                                card
+                            }
+                        }
+                    }
+                }
+            }
+
+            _cardStates.update { cardStates ->
+                cardStates.mapIndexed { index, card ->
+                    if (index == cardIndex) {
+                        card.copy(
+                            timerState = card.timerState.copy(
+                                timer = cardTimer
+                            )
+                        )
+                    } else {
+                        card
+                    }
+                }
+            }
+
+            cardTimer.start()
         }
     }
 

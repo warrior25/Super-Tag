@@ -4,6 +4,7 @@ import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.Card
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 
 class CardsDao(application: STApplication) {
 
@@ -21,5 +22,13 @@ class CardsDao(application: STApplication) {
                 eq("game_id", gameId)
             }
         }
+    }
+
+    suspend fun getCardsStatus(gameId: String): Card {
+        return db.from("cards").select(columns = Columns.list("cards_active_until")) {
+            filter {
+                eq("game_id", gameId)
+            }
+        }.decodeSingle<Card>()
     }
 }

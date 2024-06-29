@@ -6,8 +6,8 @@ import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Sides
 
 data class GameState(
-    val gameId: String? = null,
-    val userId: String? = null,
+    val gameId: String = "",
+    val userId: String = "",
     val playingArea: Zone = Zone(),
     val isInitialized: Boolean = false,
     val side: Sides = Sides.Chasers,

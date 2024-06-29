@@ -27,10 +27,10 @@ fun ChaserTimers(
         title = stringResource(id = R.string.runner)
     )
     Spacer(modifier = Modifier.width(16.dp))
-    if (zonePresenceTimer.startTime != null) {
+    if (zonePresenceTimer.currentTime != 0L) {
         Timer(
-            startTime = zonePresenceTimer.startTime,
-            totalTime = zonePresenceTimer.totalTime!!,
+            startTime = zonePresenceTimer.currentTime,
+            totalTime = zonePresenceTimer.totalTime,
             handleColor = MaterialTheme.colorScheme.primary,
             inactiveBarColor = Color.Gray,
             activeBarColor = MaterialTheme.colorScheme.secondary,

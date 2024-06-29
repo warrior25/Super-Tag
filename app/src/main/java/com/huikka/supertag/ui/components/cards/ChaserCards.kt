@@ -11,7 +11,8 @@ fun ChaserCards(cardStates: List<CardState>, card1action: () -> Unit) {
         description = stringResource(id = cardStates[0].descriptionResId),
         cost = cardStates[0].cost,
         enabled = cardStates[0].enabled,
-        activeTime = cardStates[0].activeTime
+        totalTime = cardStates[0].timerState.totalTime,
+        timeRemaining = cardStates[0].timerState.currentTime
     ) {
         card1action()
     }

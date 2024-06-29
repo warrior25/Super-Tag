@@ -5,6 +5,7 @@ data class CardState(
     val descriptionResId: Int,
     val cost: Int,
     val enabled: Boolean = false,
-    val activeTime: Long,
-    val activeUntil: Long? = null
+    val activeUntil: Long? = null,
+    val timeRemaining: Long = 0,
+    val timerState: TimerState = TimerState()
 )

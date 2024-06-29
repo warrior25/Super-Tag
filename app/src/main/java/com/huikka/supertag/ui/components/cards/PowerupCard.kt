@@ -1,13 +1,16 @@
 package com.huikka.supertag.ui.components.cards
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -22,7 +25,8 @@ fun PowerupCard(
     description: String,
     cost: Int,
     enabled: Boolean = true,
-    activeTime: Long,
+    totalTime: Long,
+    timeRemaining: Long,
     onClick: () -> Unit
 ) {
     ElevatedCard(
@@ -52,9 +56,17 @@ fun PowerupCard(
         Row(
             horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()
         ) {
-            val (activeMin, activeS) = TimeConverter.longToMinutesAndSeconds(activeTime)
+            val (activeMin, activeS) = TimeConverter.longToMinutesAndSeconds(totalTime)
             Text(text = description, modifier = Modifier.padding(16.dp))
             Text(text = "$activeMin m $activeS s", modifier = Modifier.padding(16.dp))
+        }
+        if (timeRemaining != 0L) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                LinearProgressIndicator(
+                    progress = { timeRemaining / totalTime.toFloat() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
