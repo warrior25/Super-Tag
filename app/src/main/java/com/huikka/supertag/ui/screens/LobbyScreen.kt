@@ -48,7 +48,7 @@ fun LobbyScreen(
             onEvent(LobbyEvent.OnNavigateAway)
         }
     }
-    if (state.players.isEmpty()) {
+    if (state.players.isEmpty() || state.game?.status == GameStatuses.PLAYING) {
         Loading()
         return
     }

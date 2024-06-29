@@ -36,6 +36,7 @@ import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbyScreenRoute
 import com.huikka.supertag.ui.LoginScreenRoute
 import com.huikka.supertag.ui.components.FloatingActionButtonWithText
+import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.ui.events.MainEvent
 import com.huikka.supertag.ui.state.MainState
 
@@ -73,7 +74,10 @@ fun MainScreen(
             }
         }
     }
-
+    if (!state.isInitialized || state.gameStatus !== null) {
+        Loading()
+        return
+    }
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

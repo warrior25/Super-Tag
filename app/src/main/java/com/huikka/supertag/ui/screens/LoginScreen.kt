@@ -55,7 +55,7 @@ fun LoginScreen(
             }
         }
     }
-    if (!state.isInitialized) {
+    if (!state.isInitialized || state.isLoggedIn) {
         Loading()
         return
     }
