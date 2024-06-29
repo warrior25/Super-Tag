@@ -61,4 +61,7 @@
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
     <string name="zone">Zone</string>
+    <string name="cards">Cards</string>
+    <string name="card1_title">Live location</string>
+    <string name="card1_description">Card 1 description</string>
 </resources>

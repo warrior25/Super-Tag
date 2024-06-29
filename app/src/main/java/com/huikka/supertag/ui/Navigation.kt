@@ -83,8 +83,12 @@ fun Navigation(
         }
         composable<GameScreenRoute> {
             val state by gameViewModel.state.collectAsState()
+            val cardStates by gameViewModel.cardStates.collectAsState()
             GameScreen(
-                navController = navController, state = state, onEvent = gameViewModel::onEvent
+                navController = navController,
+                state = state,
+                cardStates = cardStates,
+                onEvent = gameViewModel::onEvent
             )
         }
     }

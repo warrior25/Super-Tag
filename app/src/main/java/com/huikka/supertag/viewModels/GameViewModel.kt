@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.ActiveRunnerZonesDao
 import com.huikka.supertag.data.dao.AuthDao
+import com.huikka.supertag.data.dao.CardsDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
@@ -17,6 +18,7 @@ import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
 import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.cards
 import com.huikka.supertag.ui.events.GameEvent
 import com.huikka.supertag.ui.state.GameState
 import com.huikka.supertag.ui.state.TimerState
@@ -34,16 +36,23 @@ class GameViewModel(
     private val zoneDao: ZoneDao,
     private val activeRunnerZonesDao: ActiveRunnerZonesDao,
     private val runnerDao: RunnerDao,
+    private val cardsDao: CardsDao,
     private val trueTime: TrueTime
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GameState())
     val state = _state.asStateFlow()
 
+    private val _cardStates = MutableStateFlow(
+        cards
+    )
+    val cardStates = _cardStates.asStateFlow()
+
     fun onEvent(event: GameEvent) {
         when (event) {
             is GameEvent.OnInit -> initData()
             is GameEvent.OnLeaveGame -> leaveGame()
+            is GameEvent.OnCardActivate -> activateCard(event.cardIndex)
         }
     }
 
@@ -145,6 +154,35 @@ class GameViewModel(
                 money = money!!
             )
         }
+        updateCardStates()
+    }
+
+    private fun updateCardStates() {
+        _cardStates.update { cardStates ->
+            cardStates.map { card ->
+                card.copy(enabled = state.value.money >= card.cost)
+            }
+        }
+    }
+
+    private fun activateCard(cardIndex: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val activeUntil = trueTime.now().time + cardStates.value[cardIndex].activeTime
+            _cardStates.update { cardStates ->
+                cardStates.mapIndexed { index, card ->
+                    if (index == cardIndex) {
+                        card.copy(enabled = false, activeUntil = activeUntil)
+                    } else {
+                        card
+                    }
+                }
+            }
+
+            val statusList = cardStates.value.map {
+                it.activeUntil
+            }
+            cardsDao.updateCardsStatus(gameId = state.value.gameId!!, status = statusList)
+        }
     }
 
     private suspend fun updatePlayers(players: List<Player>) {
@@ -237,6 +275,7 @@ class GameViewModel(
                     myApp.zoneDao,
                     myApp.activeRunnerZonesDao,
                     myApp.runnerDao,
+                    myApp.cardsDao,
                     myApp.trueTime
                 ) as T
             }

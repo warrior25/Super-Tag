@@ -31,7 +31,7 @@ class ActiveRunnerZonesDao(application: STApplication) {
             }
     }
 
-    suspend fun addRow(newId: String) {
+    suspend fun addGame(newId: String) {
         db.from("active_runner_zones").insert(ActiveRunnerZones(gameId = newId))
     }
 }
