@@ -3,10 +3,8 @@ package com.huikka.supertag.ui.components.hud
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.huikka.supertag.R
@@ -15,27 +13,21 @@ import com.huikka.supertag.ui.state.TimerState
 
 @Composable
 fun ChaserTimers(
-    runnerLocationUpdateTime: Long, zonePresenceTimer: TimerState
+    runnerLocationUpdateTimer: TimerState, zonePresenceTimer: TimerState
 ) {
     Timer(
-        startTime = runnerLocationUpdateTime,
-        totalTime = runnerLocationUpdateTime,
-        handleColor = MaterialTheme.colorScheme.primary,
-        inactiveBarColor = Color.Gray,
-        activeBarColor = MaterialTheme.colorScheme.secondary,
+        currentTime = runnerLocationUpdateTimer.currentTime,
+        totalTime = runnerLocationUpdateTimer.totalTime,
         modifier = Modifier.size(75.dp),
         title = stringResource(id = R.string.runner)
     )
     Spacer(modifier = Modifier.width(16.dp))
-    if (zonePresenceTimer.currentTime != 0L) {
+    if (zonePresenceTimer.isRunning) {
         Timer(
-            startTime = zonePresenceTimer.currentTime,
+            currentTime = zonePresenceTimer.currentTime,
             totalTime = zonePresenceTimer.totalTime,
-            handleColor = MaterialTheme.colorScheme.primary,
-            inactiveBarColor = Color.Gray,
-            activeBarColor = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.size(75.dp),
-            title = stringResource(id = R.string.runner)
+            title = stringResource(id = R.string.earning_money)
         )
     }
 }

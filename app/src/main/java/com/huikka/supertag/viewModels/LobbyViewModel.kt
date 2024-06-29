@@ -9,7 +9,7 @@ import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
-import com.huikka.supertag.data.helpers.GameStatuses
+import com.huikka.supertag.data.helpers.GameStatus
 import com.huikka.supertag.ui.events.LobbyEvent
 import com.huikka.supertag.ui.state.LobbyState
 import kotlinx.coroutines.Dispatchers
@@ -83,7 +83,7 @@ class LobbyViewModel(
     private fun startGame() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                gameDao.setGameStatus(state.value.gameId, GameStatuses.PLAYING)
+                gameDao.setGameStatus(state.value.gameId, GameStatus.PLAYING)
             } catch (e: Exception) {
                 Log.e("LobbyViewModel", "Failed to get current game info: $e")
                 _state.update {

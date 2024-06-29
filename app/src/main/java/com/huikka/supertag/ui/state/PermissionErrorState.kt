@@ -1,7 +1,7 @@
 package com.huikka.supertag.ui.state
 
-import com.huikka.supertag.data.helpers.PermissionErrors
+import com.huikka.supertag.data.helpers.PermissionError
 
 data class PermissionErrorState(
-    val permissionError: PermissionErrors? = null, val permissionsRequested: Boolean = false
+    val permissionError: PermissionError? = null, val permissionsRequested: Boolean = false
 )

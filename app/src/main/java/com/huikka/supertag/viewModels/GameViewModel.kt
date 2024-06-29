@@ -1,6 +1,7 @@
 package com.huikka.supertag.viewModels
 
 import android.os.CountDownTimer
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -19,7 +20,8 @@ import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
 import com.huikka.supertag.data.helpers.Sides
-import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.TimerType
+import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.data.helpers.cards
 import com.huikka.supertag.ui.events.GameEvent
 import com.huikka.supertag.ui.state.GameState
@@ -91,9 +93,9 @@ class GameViewModel(
         val runnerZones = mutableListOf<Zone>()
         val allZones = zoneDao.getZones()
         for (zone in allZones) {
-            if (zone.type == ZoneTypes.ATM || zone.type == ZoneTypes.STORE) {
+            if (zone.type == ZoneType.ATM || zone.type == ZoneType.STORE) {
                 chaserZones.add(zone)
-            } else if (zone.type == ZoneTypes.ATTRACTION) {
+            } else if (zone.type == ZoneType.ATTRACTION) {
                 runnerZones.add(zone)
             }
         }
@@ -238,54 +240,69 @@ class GameViewModel(
             zone = zoneDao.getZoneById(currentPlayer.zoneId)
         }
 
-
-        val delay = if (zone != null && currentPlayer.enteredZone != null) {
-            calculateZonePresenceTime(zone, currentPlayer.enteredZone)
-        } else {
-            TimerState()
-        }
-
         _state.update {
             it.copy(
-                players = players, currentZone = zone, zonePresenceTimer = delay
+                players = players, currentZone = zone
             )
         }
 
-        if (cardStates.value[0].timerState.currentTime != 0L) {
+        Log.d(
+            "zonePresenceTimer",
+            "${zone?.name}: ${currentPlayer.enteredZone}, ${state.value.zonePresenceTimer.isRunning}"
+        )
+        if (zone != null && currentPlayer.enteredZone != null) {
+            if (!state.value.zonePresenceTimer.isRunning) {
+                val (startTime, totalTime) = calculateZonePresenceTime(
+                    zone, currentPlayer.enteredZone
+                )
+                startTimer(
+                    timerType = TimerType.ZonePresence, startTime = startTime, totalTime = totalTime
+                )
+            }
+        } else {
+            state.value.zonePresenceTimer.timer?.cancel()
+            _state.update {
+                it.copy(zonePresenceTimer = it.zonePresenceTimer.copy(isRunning = false))
+            }
+        }
+
+        if (cardStates.value[0].timerState.isRunning) {
             val runner = players.find { it.id == state.value.runnerId }!!
             updateLiveRunnerLocation(runner)
         }
     }
 
-    private fun calculateZonePresenceTime(zone: Zone, enterTime: Long): TimerState {
+    private fun calculateZonePresenceTime(zone: Zone, enterTime: Long): Pair<Long, Long> {
         val zoneCaptureTime: Long =
             if (state.value.side == Sides.Runner && zone in state.value.activeRunnerZones) {
                 when (zone.type) {
-                    ZoneTypes.ATTRACTION -> Config.ATTRACTION_TIME
+                    ZoneType.ATTRACTION -> Config.ATTRACTION_TIME
                     else -> 0
                 }
             } else {
                 when (zone.type) {
-                    ZoneTypes.ATM -> Config.ATM_TIME
-                    ZoneTypes.STORE -> Config.STORE_TIME
+                    ZoneType.ATM -> Config.ATM_TIME
+                    ZoneType.STORE -> Config.STORE_TIME
                     else -> 0
                 }
             }
         val timeInZone = trueTime.now().time.minus(enterTime)
-        return TimerState(
-            currentTime = zoneCaptureTime.minus(timeInZone), totalTime = zoneCaptureTime
-        )
+        return Pair(zoneCaptureTime.minus(timeInZone), zoneCaptureTime)
     }
 
     private fun updateActiveRunnerZones(zoneIds: List<Int>, nextUpdate: Long) {
         val activeZones = state.value.runnerZones.filter { it.id in zoneIds }
         val delay = nextUpdate.minus(trueTime.now().time).coerceAtLeast(0)
 
-        // Might not restart timer if delay is exactly same as previously,
-        // unlikely when working with milliseconds
+        startTimer(
+            timerType = TimerType.ZoneShuffle,
+            startTime = delay,
+            totalTime = Config.RUNNER_ZONE_SHUFFLE_TIME
+        )
+
         _state.update {
             it.copy(
-                activeRunnerZones = activeZones, zoneUpdateTime = delay, isInitialized = true
+                activeRunnerZones = activeZones, isInitialized = true
             )
         }
     }
@@ -295,9 +312,11 @@ class GameViewModel(
             return
         }
         val delay = runner.nextUpdate.minus(trueTime.now().time).coerceAtLeast(0)
+        startTimer(timerType = TimerType.RunnerLocation, startTime = delay)
+
         _state.update {
             it.copy(
-                runner = runner, runnerLocationUpdateTime = delay, isInitialized = true
+                runner = runner, isInitialized = true
             )
         }
     }
@@ -381,6 +400,92 @@ class GameViewModel(
             }
 
             cardTimer.start()
+        }
+    }
+
+    private fun startTimer(timerType: TimerType, startTime: Long? = null, totalTime: Long? = null) {
+        viewModelScope.launch(Dispatchers.Main) {
+            val timerState: TimerState = when (timerType) {
+                TimerType.ZonePresence -> state.value.zonePresenceTimer
+                TimerType.RunnerLocation -> state.value.runnerLocationUpdateTimer
+                TimerType.ZoneShuffle -> state.value.zoneShuffleTimer
+            }
+            timerState.timer?.cancel()
+
+            val cardTimer = object : CountDownTimer(startTime ?: timerState.totalTime, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    when (timerType) {
+                        TimerType.ZonePresence -> _state.update {
+                            it.copy(
+                                zonePresenceTimer = state.value.zonePresenceTimer.copy(
+                                    currentTime = millisUntilFinished,
+                                    totalTime = totalTime ?: startTime ?: timerState.totalTime,
+                                    isRunning = true
+                                )
+                            )
+                        }
+
+                        TimerType.ZoneShuffle -> _state.update {
+                            it.copy(
+                                zoneShuffleTimer = state.value.zoneShuffleTimer.copy(
+                                    currentTime = millisUntilFinished,
+                                    isRunning = true,
+                                    totalTime = totalTime ?: startTime ?: timerState.totalTime
+                                )
+                            )
+                        }
+
+                        TimerType.RunnerLocation -> _state.update {
+                            it.copy(
+                                runnerLocationUpdateTimer = state.value.runnerLocationUpdateTimer.copy(
+                                    currentTime = millisUntilFinished,
+                                    isRunning = true,
+                                    totalTime = totalTime ?: startTime ?: timerState.totalTime
+                                )
+                            )
+                        }
+                    }
+                }
+
+                override fun onFinish() {
+                    when (timerType) {
+                        TimerType.ZonePresence -> _state.update {
+                            it.copy(zonePresenceTimer = state.value.zonePresenceTimer.copy(isRunning = false))
+                        }
+
+                        TimerType.ZoneShuffle -> _state.update {
+                            it.copy(zoneShuffleTimer = state.value.zoneShuffleTimer.copy(isRunning = false))
+                        }
+
+                        TimerType.RunnerLocation -> _state.update {
+                            it.copy(
+                                runnerLocationUpdateTimer = state.value.runnerLocationUpdateTimer.copy(
+                                    isRunning = false
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            cardTimer.start()
+
+            when (timerType) {
+                TimerType.ZonePresence -> _state.update {
+                    it.copy(zonePresenceTimer = state.value.zonePresenceTimer.copy(timer = cardTimer))
+                }
+
+                TimerType.ZoneShuffle -> _state.update {
+                    it.copy(zoneShuffleTimer = state.value.zoneShuffleTimer.copy(timer = cardTimer))
+                }
+
+                TimerType.RunnerLocation -> _state.update {
+                    it.copy(
+                        runnerLocationUpdateTimer = state.value.runnerLocationUpdateTimer.copy(
+                            timer = cardTimer
+                        )
+                    )
+                }
+            }
         }
     }
 

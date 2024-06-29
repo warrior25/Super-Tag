@@ -1,5 +1,5 @@
 package com.huikka.supertag.data.helpers
 
-enum class PermissionErrors {
+enum class PermissionError {
     NotRequested, Denied
 }

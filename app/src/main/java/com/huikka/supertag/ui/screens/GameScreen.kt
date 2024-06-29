@@ -51,10 +51,10 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.huikka.supertag.LocationUpdateService
 import com.huikka.supertag.R
-import com.huikka.supertag.data.helpers.ServiceActions
+import com.huikka.supertag.data.helpers.ServiceAction
 import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.Sides
-import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.ui.MainScreenRoute
 import com.huikka.supertag.ui.components.ConfirmationDialog
 import com.huikka.supertag.ui.components.Loading
@@ -95,7 +95,7 @@ fun GameScreen(
     LaunchedEffect(true) {
         if (!ServiceStatus.isServiceRunning(context)) {
             val intent = Intent(context, LocationUpdateService::class.java)
-            intent.setAction(ServiceActions.START_SERVICE)
+            intent.setAction(ServiceAction.START_SERVICE)
             startForegroundService(context, intent)
         }
         onEvent(GameEvent.OnInit)
@@ -112,9 +112,9 @@ fun GameScreen(
             titleContentColor = MaterialTheme.colorScheme.primary,
         ), title = {
             if (state.side == Sides.Runner) {
-                Text(text = stringResource(id = R.string.runner))
+                Text(text = "${stringResource(id = R.string.runner)} (${state.gameId})")
             } else {
-                Text(text = stringResource(id = R.string.chaser))
+                Text(text = "${stringResource(id = R.string.chaser)} (${state.gameId})")
             }
         }, actions = {
             IconButton(onClick = { menuExpanded = !menuExpanded }) {
@@ -140,12 +140,12 @@ fun GameScreen(
         BottomAppBar(actions = {
             if (state.side == Sides.Runner) {
                 RunnerTimers(
-                    zoneUpdateTime = state.zoneUpdateTime,
+                    zoneShuffleTimer = state.zoneShuffleTimer,
                     zonePresenceTimer = state.zonePresenceTimer
                 )
             } else {
                 ChaserTimers(
-                    runnerLocationUpdateTime = state.runnerLocationUpdateTime,
+                    runnerLocationUpdateTimer = state.runnerLocationUpdateTimer,
                     zonePresenceTimer = state.zonePresenceTimer,
                 )
             }
@@ -164,7 +164,7 @@ fun GameScreen(
                 dismissText = stringResource(id = R.string.cancel),
                 onConfirm = {
                     val intent = Intent(context, LocationUpdateService::class.java)
-                    intent.setAction(ServiceActions.STOP_SERVICE)
+                    intent.setAction(ServiceAction.STOP_SERVICE)
                     startForegroundService(context, intent)
                     onEvent(GameEvent.OnLeaveGame)
                     navController.navigate(MainScreenRoute)
@@ -215,9 +215,9 @@ fun GameScreen(
                         }
                     } else {
                         for (zone in state.chaserZones) {
-                            if (zone.type == ZoneTypes.ATM) {
+                            if (zone.type == ZoneType.ATM) {
                                 ATM(zone = zone)
-                            } else if (zone.type == ZoneTypes.STORE) {
+                            } else if (zone.type == ZoneType.STORE) {
                                 Store(zone = zone)
                             }
                         }

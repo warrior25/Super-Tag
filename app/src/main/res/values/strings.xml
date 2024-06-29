@@ -63,5 +63,6 @@
     <string name="zone">Zone</string>
     <string name="cards">Cards</string>
     <string name="card1_title">Live location</string>
-    <string name="card1_description">Card 1 description</string>
+    <string name="card1_description">Shows runners live location</string>
+    <string name="earning_money">Earning</string>
 </resources>

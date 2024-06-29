@@ -29,8 +29,8 @@ import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
 import com.huikka.supertag.LocationUpdateService
 import com.huikka.supertag.R
-import com.huikka.supertag.data.helpers.GameStatuses
-import com.huikka.supertag.data.helpers.ServiceActions
+import com.huikka.supertag.data.helpers.GameStatus
+import com.huikka.supertag.data.helpers.ServiceAction
 import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbyScreenRoute
@@ -56,18 +56,18 @@ fun MainScreen(
             return@LaunchedEffect
         }
         when (state.gameStatus) {
-            GameStatuses.LOBBY -> {
+            GameStatus.LOBBY -> {
                 navController.navigate(LobbyScreenRoute(state.gameId))
                 onEvent(MainEvent.OnNavigateAway)
             }
 
-            GameStatuses.PLAYING -> {
+            GameStatus.PLAYING -> {
                 navController.navigate(GameScreenRoute)
             }
 
             else -> {
                 val intent = Intent(context, LocationUpdateService::class.java)
-                intent.setAction(ServiceActions.STOP_SERVICE)
+                intent.setAction(ServiceAction.STOP_SERVICE)
                 startForegroundService(context, intent)
                 ServiceStatus.setServiceRunning(context, false)
             }

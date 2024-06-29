@@ -1,6 +1,6 @@
 package com.huikka.supertag.data.helpers
 
-object ZoneTypes {
+object ZoneType {
     const val ATTRACTION = "attraction"
     const val PLAYING_AREA = "playing_area"
     const val STORE = "store"

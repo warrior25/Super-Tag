@@ -1,7 +1,7 @@
 package com.huikka.supertag.viewModels
 
 import androidx.lifecycle.ViewModel
-import com.huikka.supertag.data.helpers.PermissionErrors
+import com.huikka.supertag.data.helpers.PermissionError
 import com.huikka.supertag.ui.events.PermissionErrorEvent
 import com.huikka.supertag.ui.state.PermissionErrorState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +18,7 @@ class PermissionErrorViewModel : ViewModel() {
         }
     }
 
-    fun updatePermissionError(permissionError: PermissionErrors?) {
+    fun updatePermissionError(permissionError: PermissionError?) {
         _state.update {
             it.copy(
                 permissionError = permissionError

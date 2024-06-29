@@ -17,7 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.app.ActivityCompat
-import com.huikka.supertag.data.helpers.PermissionErrors
+import com.huikka.supertag.data.helpers.PermissionError
 import com.huikka.supertag.ui.Navigation
 import com.huikka.supertag.viewModels.GameViewModel
 import com.huikka.supertag.viewModels.LobbySettingsViewModel
@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                permissionErrorViewModel.updatePermissionError(PermissionErrors.Denied)
+                permissionErrorViewModel.updatePermissionError(PermissionError.Denied)
                 Log.d("PERMISSIONS", "Denied background")
             } else {
                 permissionErrorViewModel.updatePermissionError(null)
@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity() {
                 // same time, respect the user's decision. Don't link to system
                 // settings in an effort to convince the user to change their
                 // decision.
-                permissionErrorViewModel.updatePermissionError(PermissionErrors.Denied)
+                permissionErrorViewModel.updatePermissionError(PermissionError.Denied)
                 Log.d("PERMISSIONS", "Denied foreground")
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 requestBackgroundLocation.launch(
@@ -120,7 +120,7 @@ class MainActivity : AppCompatActivity() {
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 if (permissionErrorViewModel.state.value.permissionError == null) {
-                    permissionErrorViewModel.updatePermissionError(PermissionErrors.NotRequested)
+                    permissionErrorViewModel.updatePermissionError(PermissionError.NotRequested)
                 }
             } else {
                 permissionErrorViewModel.updatePermissionError(null)
@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity() {
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 if (permissionErrorViewModel.state.value.permissionError == null) {
-                    permissionErrorViewModel.updatePermissionError(PermissionErrors.NotRequested)
+                    permissionErrorViewModel.updatePermissionError(PermissionError.NotRequested)
                 }
             } else {
                 permissionErrorViewModel.updatePermissionError(null)
@@ -140,11 +140,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestPermissions() {
-        if (permissionErrorViewModel.state.value.permissionError == PermissionErrors.NotRequested) {
+        if (permissionErrorViewModel.state.value.permissionError == PermissionError.NotRequested) {
             requestFineLocation.launch(
                 Manifest.permission.ACCESS_FINE_LOCATION
             )
-        } else if (permissionErrorViewModel.state.value.permissionError == PermissionErrors.Denied) {
+        } else if (permissionErrorViewModel.state.value.permissionError == PermissionError.Denied) {
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
             val uri: Uri = Uri.fromParts("package", packageName, null)
             intent.data = uri

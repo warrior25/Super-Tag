@@ -11,7 +11,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import com.huikka.supertag.R
 import com.huikka.supertag.data.dto.Zone
-import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.ui.components.InfoChip
 
 @Composable
@@ -24,7 +24,7 @@ fun ChaserHUD(money: Int, currentZone: Zone?) {
             .fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         CommonHUD(money = money)
-        if (currentZone?.type in ZoneTypes.CHASER_ZONE_TYPES) {
+        if (currentZone?.type in ZoneType.CHASER_ZONE_TYPES) {
             InfoChip(
                 text = currentZone!!.name!!,
                 icon = ImageVector.vectorResource(id = R.drawable.location_pin)

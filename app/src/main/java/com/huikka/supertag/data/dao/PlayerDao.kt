@@ -52,7 +52,8 @@ class PlayerDao(application: STApplication) {
         locationAccuracy: Float,
         speed: Float,
         bearing: Float,
-        zoneId: Int?
+        zoneId: Int?,
+        enteredZone: Long?
     ) {
         db.from("players").update({
             set("latitude", latitude)
@@ -61,6 +62,7 @@ class PlayerDao(application: STApplication) {
             set("speed", speed)
             set("bearing", bearing)
             set("zone_id", zoneId)
+            set("entered_zone", enteredZone)
         }) {
             filter {
                 eq("id", id)
