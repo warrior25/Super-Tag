@@ -17,6 +17,7 @@ import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
+import com.huikka.supertag.data.helpers.Sides
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.data.helpers.cards
 import com.huikka.supertag.ui.events.GameEvent
@@ -47,6 +48,8 @@ class GameViewModel(
         cards
     )
     val cardStates = _cardStates.asStateFlow()
+
+    private val cardActions = listOf(this::updateLiveRunnerLocation)
 
     fun onEvent(event: GameEvent) {
         when (event) {
@@ -102,11 +105,14 @@ class GameViewModel(
     private suspend fun getRunnerData() {
         val runnerId = gameDao.getRunnerId(state.value.gameId!!)!!
         val runnerName = playerDao.getPlayerById(runnerId)!!.name!!
+        val side = if (state.value.userId == runnerId) {
+            Sides.Runner
+        } else {
+            Sides.Chasers
+        }
         _state.update {
             it.copy(
-                isRunner = state.value.userId == runnerId,
-                runnerName = runnerName,
-                runnerId = runnerId
+                side = side, runnerName = runnerName, runnerId = runnerId
             )
         }
     }
@@ -124,7 +130,7 @@ class GameViewModel(
                 updatePlayers(it)
             }
         }
-        if (state.value.isRunner) {
+        if (state.value.side == Sides.Runner) {
             viewModelScope.launch(Dispatchers.IO) {
                 val flow = activeRunnerZonesDao.getActiveRunnerZonesFlow(state.value.gameId!!)
                 flow.collect {
@@ -144,7 +150,7 @@ class GameViewModel(
     }
 
     private fun updateGame(game: Game) {
-        val money = if (state.value.isRunner) {
+        val money = if (state.value.side == Sides.Runner) {
             game.runnerMoney
         } else {
             game.chaserMoney
@@ -182,14 +188,22 @@ class GameViewModel(
                 it.activeUntil
             }
             cardsDao.updateCardsStatus(gameId = state.value.gameId!!, status = statusList)
+
+            gameDao.reduceMoney(
+                gameId = state.value.gameId!!,
+                side = state.value.side,
+                amount = cardStates.value[cardIndex].cost
+            )
+
+            cardActions[0].invoke(null)
         }
     }
 
     private suspend fun updatePlayers(players: List<Player>) {
-        val currentPlayer = players.find { it.id == state.value.userId }
+        val currentPlayer = players.find { it.id == state.value.userId }!!
         var zone: Zone? = null
-        if (currentPlayer!!.zoneId != null) {
-            zone = zoneDao.getZoneById(currentPlayer.zoneId!!)
+        if (currentPlayer.zoneId != null) {
+            zone = zoneDao.getZoneById(currentPlayer.zoneId)
         }
 
 
@@ -204,11 +218,16 @@ class GameViewModel(
                 players = players, currentZone = zone, zonePresenceTimer = delay
             )
         }
+
+        if (cardStates.value[0].activeUntil != null) {
+            val runner = players.find { it.id == state.value.runnerId }!!
+            updateLiveRunnerLocation(runner)
+        }
     }
 
     private fun calculateZonePresenceTime(zone: Zone, enterTime: Long): TimerState {
         val zoneCaptureTime: Long? =
-            if (state.value.isRunner && zone in state.value.activeRunnerZones) {
+            if (state.value.side == Sides.Runner && zone in state.value.activeRunnerZones) {
                 when (zone.type) {
                     ZoneTypes.ATTRACTION -> Config.ATTRACTION_TIME
                     else -> null
@@ -251,10 +270,25 @@ class GameViewModel(
 
     private fun leaveGame() {
         viewModelScope.launch(Dispatchers.IO) {
-            if (state.value.isRunner) {
+            if (state.value.side == Sides.Runner) {
                 gameDao.removeGame(state.value.gameId!!)
             } else {
                 playerDao.removeFromGame(state.value.userId!!)
+            }
+        }
+    }
+
+    private fun updateLiveRunnerLocation(runner: Player? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val runnerLive = runner ?: playerDao.getPlayerById(state.value.runnerId)!!
+            _state.update {
+                it.copy(
+                    runner = state.value.runner?.copy(
+                        latitude = runnerLive.latitude,
+                        longitude = runnerLive.longitude,
+                        locationAccuracy = runnerLive.locationAccuracy
+                    )
+                )
             }
         }
     }

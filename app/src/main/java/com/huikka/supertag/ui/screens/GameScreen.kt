@@ -53,6 +53,7 @@ import com.huikka.supertag.LocationUpdateService
 import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.ServiceActions
 import com.huikka.supertag.data.helpers.ServiceStatus
+import com.huikka.supertag.data.helpers.Sides
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.ui.MainScreenRoute
 import com.huikka.supertag.ui.components.ConfirmationDialog
@@ -110,7 +111,7 @@ fun GameScreen(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             titleContentColor = MaterialTheme.colorScheme.primary,
         ), title = {
-            if (state.isRunner) {
+            if (state.side == Sides.Runner) {
                 Text(text = stringResource(id = R.string.runner))
             } else {
                 Text(text = stringResource(id = R.string.chaser))
@@ -137,7 +138,7 @@ fun GameScreen(
         })
     }, bottomBar = {
         BottomAppBar(actions = {
-            if (state.isRunner) {
+            if (state.side == Sides.Runner) {
                 RunnerTimers(
                     zoneUpdateTime = state.zoneUpdateTime,
                     zonePresenceTimer = state.zonePresenceTimer
@@ -151,7 +152,7 @@ fun GameScreen(
         })
     }) { padding ->
         if (showLeaveGameDialog) {
-            val text = if (state.isRunner) {
+            val text = if (state.side == Sides.Runner) {
                 stringResource(id = R.string.leave_game_confirm_text_runner)
             } else {
                 stringResource(id = R.string.leave_game_confirm_text_chaser)
@@ -208,7 +209,7 @@ fun GameScreen(
                 ) {
                     Zone(zone = state.playingArea)
 
-                    if (state.isRunner) {
+                    if (state.side == Sides.Runner) {
                         for (zone in state.activeRunnerZones) {
                             Attraction(zone = zone)
                         }
@@ -246,7 +247,7 @@ fun GameScreen(
                     }
                 }
 
-                if (state.isRunner) {
+                if (state.side == Sides.Runner) {
                     RunnerHUD(
                         money = state.money,
                         currentZone = state.currentZone,
@@ -282,7 +283,7 @@ fun GameScreen(
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
                             )
-                            if (state.isRunner) {
+                            if (state.side == Sides.Runner) {
                                 RunnerCards(cardStates = cardStates)
                             } else {
                                 ChaserCards(cardStates = cardStates,
