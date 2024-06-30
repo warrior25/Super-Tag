@@ -52,7 +52,7 @@ class GameViewModel(
     )
     val cardStates = _cardStates.asStateFlow()
 
-    private val cardActions = listOf(this::updateLiveRunnerLocation)
+    private val cardActions = listOf { updateLiveRunnerLocation(null) }
 
     fun onEvent(event: GameEvent) {
         when (event) {
@@ -173,15 +173,19 @@ class GameViewModel(
 
             _cardStates.update { cardStates ->
                 cardStates.mapIndexed { index, cardState ->
+                    val activeUntil = status.cardsActiveUntil?.get(index)
                     val timeRemaining =
-                        status.cardsActiveUntil?.get(index)?.minus(trueTime.now().time)
-                            ?.coerceAtLeast(0) ?: 0
+                        activeUntil?.minus(trueTime.now().time)?.coerceAtLeast(0) ?: 0
 
                     if (timeRemaining > 0L && !cardState.timerState.isRunning) {
                         startCardTimer(index, timeRemaining)
                     }
+                    if (activeUntil != cardStates[index].activeUntil) {
+                        cardActions[index].invoke()
+                    }
                     cardState.copy(
-                        enabled = state.value.money >= cardState.cost && timeRemaining == 0L
+                        enabled = state.value.money >= cardState.cost && timeRemaining == 0L,
+                        activeUntil = activeUntil
                     )
                 }
             }
@@ -215,7 +219,7 @@ class GameViewModel(
             )
 
             startCardTimer(cardIndex)
-            cardActions[0].invoke(null)
+            cardActions[cardIndex].invoke()
         }
     }
 

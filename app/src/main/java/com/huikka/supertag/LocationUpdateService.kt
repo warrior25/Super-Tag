@@ -136,8 +136,6 @@ class LocationUpdateService : Service(), LocationListener {
 
                     else -> 0
                 }
-                Log.d("zonePresenceTimer", "isTimerRunning: $isTimerRunning")
-                Log.d("zonePresenceTimer", "isValidZone: ${isValidZone()}")
                 if (!isValidZone()) {
                     isTimerRunning = false
                     zonePresenceTimer?.cancel()

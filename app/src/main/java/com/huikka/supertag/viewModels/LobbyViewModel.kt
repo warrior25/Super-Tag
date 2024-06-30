@@ -100,7 +100,6 @@ class LobbyViewModel(
             try {
                 val flow = playerDao.getPlayersByGameIdFlow(state.value.gameId)
                 flow.collect { players ->
-                    Log.d("PLAYERS", players.toString())
                     _state.update {
                         it.copy(
                             players = players

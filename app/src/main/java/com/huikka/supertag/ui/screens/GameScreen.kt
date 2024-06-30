@@ -287,7 +287,11 @@ fun GameScreen(
                                 RunnerCards(cardStates = cardStates)
                             } else {
                                 ChaserCards(cardStates = cardStates,
-                                    card1action = { onEvent(GameEvent.OnCardActivate(0)) })
+                                    cardActions = { cardIndex ->
+                                        onEvent(
+                                            GameEvent.OnCardActivate(cardIndex)
+                                        )
+                                    })
                             }
                         }
                     }
