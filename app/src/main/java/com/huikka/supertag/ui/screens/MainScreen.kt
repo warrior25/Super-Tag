@@ -36,7 +36,9 @@ import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbyScreenRoute
 import com.huikka.supertag.ui.LoginScreenRoute
 import com.huikka.supertag.ui.components.FloatingActionButtonWithText
+import com.huikka.supertag.ui.events.LoadingEvent
 import com.huikka.supertag.ui.events.MainEvent
+import com.huikka.supertag.ui.state.LoadingState
 import com.huikka.supertag.ui.state.MainState
 
 @Composable
@@ -44,6 +46,8 @@ fun MainScreen(
     navController: NavController,
     state: MainState,
     onEvent: (MainEvent) -> Unit,
+    loading: LoadingState,
+    loadingEvent: (LoadingEvent) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -55,14 +59,28 @@ fun MainScreen(
         if (!state.isInitialized) {
             return@LaunchedEffect
         }
+        if (state.gameStatus == null) {
+            loadingEvent(LoadingEvent.OnUpdateLoadingStatus(false))
+        }
         when (state.gameStatus) {
             GameStatuses.LOBBY -> {
+                loadingEvent(
+                    LoadingEvent.OnUpdateLoadingStatus(
+                        true, text = context.getString(R.string.loading_lobby)
+                    )
+                )
                 navController.navigate(LobbyScreenRoute(state.gameId))
                 onEvent(MainEvent.OnNavigateAway)
             }
 
             GameStatuses.PLAYING -> {
+                loadingEvent(
+                    LoadingEvent.OnUpdateLoadingStatus(
+                        true, text = context.getString(R.string.loading_map)
+                    )
+                )
                 navController.navigate(GameScreenRoute)
+                onEvent(MainEvent.OnNavigateAway)
             }
 
             else -> {
@@ -73,7 +91,9 @@ fun MainScreen(
             }
         }
     }
-
+    if (loading.loading) {
+        return
+    }
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

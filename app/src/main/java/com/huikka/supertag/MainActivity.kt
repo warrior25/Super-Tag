@@ -19,7 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.core.app.ActivityCompat
 import com.huikka.supertag.data.helpers.PermissionErrors
 import com.huikka.supertag.ui.Navigation
+import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.viewModels.GameViewModel
+import com.huikka.supertag.viewModels.LoadingViewModel
 import com.huikka.supertag.viewModels.LobbySettingsViewModel
 import com.huikka.supertag.viewModels.LobbyViewModel
 import com.huikka.supertag.viewModels.LoginViewModel
@@ -34,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val lobbySettingsViewModel: LobbySettingsViewModel by viewModels { LobbySettingsViewModel.Factory }
     private val gameViewModel: GameViewModel by viewModels { GameViewModel.Factory }
     private val permissionErrorViewModel: PermissionErrorViewModel by viewModels()
+    private val loadingViewModel: LoadingViewModel by viewModels()
 
     private lateinit var requestBackgroundLocation: ActivityResultLauncher<String>
     private lateinit var requestFineLocation: ActivityResultLauncher<String>
@@ -43,6 +46,8 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             val state by permissionErrorViewModel.state.collectAsState()
+            val loading by loadingViewModel.state.collectAsState()
+
 
             LaunchedEffect(state.permissionsRequested) {
                 if (state.permissionsRequested) {
@@ -57,8 +62,15 @@ class MainActivity : AppCompatActivity() {
                 lobbyViewModel = lobbyViewModel,
                 lobbySettingsViewModel = lobbySettingsViewModel,
                 gameViewModel = gameViewModel,
-                permissionErrorViewModel = permissionErrorViewModel
-            )
+                permissionErrorViewModel = permissionErrorViewModel,
+                loadingViewModel = loadingViewModel,
+
+                )
+
+            if (loading.loading) {
+                Loading(text = loading.text)
+            }
+
         }
 
         requestBackgroundLocation = registerForActivityResult(
