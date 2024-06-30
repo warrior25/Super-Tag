@@ -1,7 +1,6 @@
 package com.huikka.supertag.viewModels
 
 import android.os.CountDownTimer
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -14,12 +13,13 @@ import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
+import com.huikka.supertag.data.dto.Card
 import com.huikka.supertag.data.dto.Game
 import com.huikka.supertag.data.dto.Player
 import com.huikka.supertag.data.dto.Runner
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
-import com.huikka.supertag.data.helpers.Sides
+import com.huikka.supertag.data.helpers.Side
 import com.huikka.supertag.data.helpers.TimerType
 import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.data.helpers.cards
@@ -52,7 +52,7 @@ class GameViewModel(
     )
     val cardStates = _cardStates.asStateFlow()
 
-    private val cardActions = listOf { updateLiveRunnerLocation(null) }
+    private val cardActions = listOf({ updateLiveRunnerLocation(null) }, {})
 
     fun onEvent(event: GameEvent) {
         when (event) {
@@ -110,9 +110,9 @@ class GameViewModel(
         val runnerId = gameDao.getRunnerId(state.value.gameId)!!
         val runnerName = playerDao.getPlayerById(runnerId)!!.name
         val side = if (state.value.userId == runnerId) {
-            Sides.Runner
+            Side.Runner
         } else {
-            Sides.Chasers
+            Side.Chasers
         }
         _state.update {
             it.copy(
@@ -134,7 +134,13 @@ class GameViewModel(
                 updatePlayers(it)
             }
         }
-        if (state.value.side == Sides.Runner) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val flow = cardsDao.getCardsStatusFlow(state.value.gameId)
+            flow.collect {
+                updateCardStates(it)
+            }
+        }
+        if (state.value.side == Side.Runner) {
             viewModelScope.launch(Dispatchers.IO) {
                 val flow = activeRunnerZonesDao.getActiveRunnerZonesFlow(state.value.gameId)
                 flow.collect {
@@ -154,7 +160,7 @@ class GameViewModel(
     }
 
     private fun updateGame(game: Game) {
-        val money = if (state.value.side == Sides.Runner) {
+        val money = if (state.value.side == Side.Runner) {
             game.runnerMoney
         } else {
             game.chaserMoney
@@ -167,27 +173,39 @@ class GameViewModel(
         updateCardStates()
     }
 
-    private fun updateCardStates() {
+    private fun updateCardStates(card: Card? = null) {
         viewModelScope.launch(Dispatchers.IO) {
-            val status = cardsDao.getCardsStatus(state.value.gameId)
+            val states = card ?: cardsDao.getCardsStatus(state.value.gameId)
+            var activeCards = 0
 
             _cardStates.update { cardStates ->
                 cardStates.mapIndexed { index, cardState ->
-                    val activeUntil = status.cardsActiveUntil?.get(index)
-                    val timeRemaining =
-                        activeUntil?.minus(trueTime.now().time)?.coerceAtLeast(0) ?: 0
+                    val activeUntil = states.cardsActiveUntil?.get(index)
+                    if (cardState.side == state.value.side) {
+                        val timeRemaining =
+                            activeUntil?.minus(trueTime.now().time)?.coerceAtLeast(0) ?: 0
 
-                    if (timeRemaining > 0L && !cardState.timerState.isRunning) {
-                        startCardTimer(index, timeRemaining)
+                        if (timeRemaining > 0L) {
+                            activeCards++
+                            if (!cardState.timerState.isRunning) {
+                                startCardTimer(index, timeRemaining)
+                                cardActions[index].invoke()
+                            }
+                        }
+                        cardState.copy(
+                            enabled = state.value.money >= cardState.cost && timeRemaining == 0L,
+                            activeUntil = activeUntil
+                        )
+                    } else {
+                        cardState.copy(activeUntil = activeUntil)
                     }
-                    if (activeUntil != cardStates[index].activeUntil) {
-                        cardActions[index].invoke()
-                    }
-                    cardState.copy(
-                        enabled = state.value.money >= cardState.cost && timeRemaining == 0L,
-                        activeUntil = activeUntil
-                    )
                 }
+            }
+
+            _state.update {
+                it.copy(
+                    activeCards = activeCards
+                )
             }
         }
     }
@@ -250,10 +268,6 @@ class GameViewModel(
             )
         }
 
-        Log.d(
-            "zonePresenceTimer",
-            "${zone?.name}: ${currentPlayer.enteredZone}, ${state.value.zonePresenceTimer.isRunning}"
-        )
         if (zone != null && currentPlayer.enteredZone != null) {
             if (!state.value.zonePresenceTimer.isRunning) {
                 val (startTime, totalTime) = calculateZonePresenceTime(
@@ -270,7 +284,7 @@ class GameViewModel(
             }
         }
 
-        if (cardStates.value[0].timerState.isRunning) {
+        if (cardStates.value[0].timerState.isRunning && cardStates.value[1].activeUntil == null) {
             val runner = players.find { it.id == state.value.runnerId }!!
             updateLiveRunnerLocation(runner)
         }
@@ -278,7 +292,7 @@ class GameViewModel(
 
     private fun calculateZonePresenceTime(zone: Zone, enterTime: Long): Pair<Long, Long> {
         val zoneCaptureTime: Long =
-            if (state.value.side == Sides.Runner && zone in state.value.activeRunnerZones) {
+            if (state.value.side == Side.Runner && zone in state.value.activeRunnerZones) {
                 when (zone.type) {
                     ZoneType.ATTRACTION -> Config.ATTRACTION_TIME
                     else -> 0
@@ -327,7 +341,7 @@ class GameViewModel(
 
     private fun leaveGame() {
         viewModelScope.launch(Dispatchers.IO) {
-            if (state.value.side == Sides.Runner) {
+            if (state.value.side == Side.Runner) {
                 gameDao.removeGame(state.value.gameId)
             } else {
                 playerDao.removeFromGame(state.value.userId)
@@ -386,6 +400,7 @@ class GameViewModel(
                             }
                         }
                     }
+                    updateCardStates()
                 }
             }
 

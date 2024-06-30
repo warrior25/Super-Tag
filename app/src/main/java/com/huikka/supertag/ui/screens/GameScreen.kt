@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Badge
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -53,13 +54,12 @@ import com.huikka.supertag.LocationUpdateService
 import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.ServiceAction
 import com.huikka.supertag.data.helpers.ServiceStatus
-import com.huikka.supertag.data.helpers.Sides
+import com.huikka.supertag.data.helpers.Side
 import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.ui.MainScreenRoute
 import com.huikka.supertag.ui.components.ConfirmationDialog
 import com.huikka.supertag.ui.components.Loading
-import com.huikka.supertag.ui.components.cards.ChaserCards
-import com.huikka.supertag.ui.components.cards.RunnerCards
+import com.huikka.supertag.ui.components.cards.Cards
 import com.huikka.supertag.ui.components.hud.ChaserHUD
 import com.huikka.supertag.ui.components.hud.ChaserTimers
 import com.huikka.supertag.ui.components.hud.RunnerHUD
@@ -111,7 +111,7 @@ fun GameScreen(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             titleContentColor = MaterialTheme.colorScheme.primary,
         ), title = {
-            if (state.side == Sides.Runner) {
+            if (state.side == Side.Runner) {
                 Text(text = "${stringResource(id = R.string.runner)} (${state.gameId})")
             } else {
                 Text(text = "${stringResource(id = R.string.chaser)} (${state.gameId})")
@@ -138,7 +138,7 @@ fun GameScreen(
         })
     }, bottomBar = {
         BottomAppBar(actions = {
-            if (state.side == Sides.Runner) {
+            if (state.side == Side.Runner) {
                 RunnerTimers(
                     zoneShuffleTimer = state.zoneShuffleTimer,
                     zonePresenceTimer = state.zonePresenceTimer
@@ -152,7 +152,7 @@ fun GameScreen(
         })
     }) { padding ->
         if (showLeaveGameDialog) {
-            val text = if (state.side == Sides.Runner) {
+            val text = if (state.side == Side.Runner) {
                 stringResource(id = R.string.leave_game_confirm_text_runner)
             } else {
                 stringResource(id = R.string.leave_game_confirm_text_chaser)
@@ -209,7 +209,7 @@ fun GameScreen(
                 ) {
                     Zone(zone = state.playingArea)
 
-                    if (state.side == Sides.Runner) {
+                    if (state.side == Side.Runner) {
                         for (zone in state.activeRunnerZones) {
                             Attraction(zone = zone)
                         }
@@ -221,7 +221,7 @@ fun GameScreen(
                                 Store(zone = zone)
                             }
                         }
-                        if (state.runner?.latitude != null) {
+                        if (state.runner?.latitude != null && cardStates[1].activeUntil == null) {
                             Player(
                                 name = state.runnerName,
                                 role = stringResource(id = R.string.runner),
@@ -247,7 +247,7 @@ fun GameScreen(
                     }
                 }
 
-                if (state.side == Sides.Runner) {
+                if (state.side == Side.Runner) {
                     RunnerHUD(
                         money = state.money,
                         currentZone = state.currentZone,
@@ -257,16 +257,24 @@ fun GameScreen(
                     ChaserHUD(money = state.money, currentZone = state.currentZone)
                 }
 
-                FloatingActionButton(
-                    onClick = { showBottomSheet = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                ) {
-                    Icon(
-                        imageVector = ImageVector.vectorResource(id = R.drawable.cards),
-                        contentDescription = "Cards"
-                    )
+                Box(modifier = Modifier.align(Alignment.BottomEnd)) {
+                    FloatingActionButton(
+                        onClick = { showBottomSheet = true }, modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cards),
+                            contentDescription = "Cards"
+                        )
+                    }
+                    if (state.activeCards > 0) {
+                        Badge(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(14.dp)
+                        ) {
+                            Text(text = state.activeCards.toString())
+                        }
+                    }
                 }
 
                 if (showBottomSheet) {
@@ -283,16 +291,14 @@ fun GameScreen(
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
                             )
-                            if (state.side == Sides.Runner) {
-                                RunnerCards(cardStates = cardStates)
-                            } else {
-                                ChaserCards(cardStates = cardStates,
-                                    cardActions = { cardIndex ->
-                                        onEvent(
-                                            GameEvent.OnCardActivate(cardIndex)
-                                        )
-                                    })
-                            }
+                            Cards(cardStates = cardStates,
+                                side = state.side,
+                                cardActions = { cardIndex ->
+                                    onEvent(
+                                        GameEvent.OnCardActivate(cardIndex)
+                                    )
+                                })
+
                         }
                     }
                 }

@@ -27,7 +27,7 @@ fun PowerupCard(
     enabled: Boolean = true,
     totalTime: Long,
     timeRemaining: Long,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     ElevatedCard(
         onClick = { onClick() },
@@ -60,7 +60,7 @@ fun PowerupCard(
             Text(text = description, modifier = Modifier.padding(16.dp))
             Text(text = "$activeMin m $activeS s", modifier = Modifier.padding(16.dp))
         }
-        if (timeRemaining != 0L) {
+        if (timeRemaining > 0L) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
                 LinearProgressIndicator(
                     progress = { timeRemaining / totalTime.toFloat() },

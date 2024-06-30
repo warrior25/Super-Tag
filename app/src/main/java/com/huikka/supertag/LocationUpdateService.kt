@@ -26,7 +26,7 @@ import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
 import com.huikka.supertag.data.helpers.ServiceAction
 import com.huikka.supertag.data.helpers.ServiceStatus
-import com.huikka.supertag.data.helpers.Sides
+import com.huikka.supertag.data.helpers.Side
 import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.data.helpers.minute
 import com.instacart.truetime.time.TrueTime
@@ -251,9 +251,9 @@ class LocationUpdateService : Service(), LocationListener {
     private fun addMoney() {
         CoroutineScope(Dispatchers.IO).launch {
             val side = if (isRunner) {
-                Sides.Runner
+                Side.Runner
             } else {
-                Sides.Chasers
+                Side.Chasers
             }
 
             val amount = when (lastZone?.type) {

@@ -65,4 +65,6 @@
     <string name="card1_title">Live location</string>
     <string name="card1_description">Shows runners live location</string>
     <string name="earning_money">Earning</string>
+    <string name="card2_title">Hide my location</string>
+    <string name="card2_description">Hides your location to the chasers</string>
 </resources>
