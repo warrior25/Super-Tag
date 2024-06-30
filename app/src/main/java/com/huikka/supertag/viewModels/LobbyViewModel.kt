@@ -16,6 +16,7 @@ import com.huikka.supertag.ui.state.LobbyState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -53,6 +54,9 @@ class LobbyViewModel(
             getGameData()
             awaitAll(gameDataCollected, playerDataCollected)
 
+            // Game status not updated in time for some reason
+            // Wait so user is not incorrectly sent to game screen
+            delay(500)
             _state.update {
                 it.copy(
                     isInitialized = true

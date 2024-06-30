@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -45,17 +46,22 @@ fun LobbyScreen(
     loading: LoadingState,
     loadingEvent: (LoadingEvent) -> Unit
 ) {
+    val context = LocalContext.current
+
     LaunchedEffect(true) {
         onEvent(LobbyEvent.OnInit(gameId))
     }
     LaunchedEffect(state.isInitialized, state.game?.status) {
-        if (state.game?.status == GameStatuses.PLAYING && state.isInitialized) {
-            loadingEvent(LoadingEvent.OnUpdateLoadingStatus(true))
+        if (!state.isInitialized) {
+            return@LaunchedEffect
+        }
+        if (state.game?.status == GameStatuses.PLAYING) {
             navController.navigate(GameScreenRoute)
             onEvent(LobbyEvent.OnNavigateAway)
-        }
-
-        if (state.players.isNotEmpty() || state.game?.status == GameStatuses.LOBBY) {
+            loadingEvent(
+                LoadingEvent.OnUpdateLoadingStatus(true, context.getString(R.string.loading_map)),
+            )
+        } else if (state.game?.status == GameStatuses.LOBBY) {
             loadingEvent(LoadingEvent.OnUpdateLoadingStatus(false))
         }
     }
@@ -125,8 +131,6 @@ fun LobbyScreen(
                 ) {
                     Button(onClick = {
                         onEvent(LobbyEvent.OnStartGameClick)
-                        navController.navigate(GameScreenRoute)
-                        onEvent(LobbyEvent.OnNavigateAway)
                     }) {
                         Text(stringResource(id = R.string.start_game))
                     }

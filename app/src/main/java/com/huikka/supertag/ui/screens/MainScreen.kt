@@ -80,6 +80,7 @@ fun MainScreen(
                     )
                 )
                 navController.navigate(GameScreenRoute)
+                onEvent(MainEvent.OnNavigateAway)
             }
 
             else -> {

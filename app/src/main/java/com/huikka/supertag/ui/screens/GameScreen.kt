@@ -152,6 +152,7 @@ fun GameScreen(
                 confirmText = stringResource(id = R.string.confirm),
                 dismissText = stringResource(id = R.string.cancel),
                 onConfirm = {
+                    showLeaveGameDialog = false
                     val intent = Intent(context, LocationUpdateService::class.java)
                     intent.setAction(ServiceActions.STOP_SERVICE)
                     startForegroundService(context, intent)
