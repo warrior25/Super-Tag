@@ -14,6 +14,7 @@ import com.huikka.supertag.ui.screens.LoginScreen
 import com.huikka.supertag.ui.screens.MainScreen
 import com.huikka.supertag.ui.screens.PermissionErrorScreen
 import com.huikka.supertag.viewModels.GameViewModel
+import com.huikka.supertag.viewModels.LoadingViewModel
 import com.huikka.supertag.viewModels.LobbySettingsViewModel
 import com.huikka.supertag.viewModels.LobbyViewModel
 import com.huikka.supertag.viewModels.LoginViewModel
@@ -28,10 +29,13 @@ fun Navigation(
     lobbyViewModel: LobbyViewModel,
     lobbySettingsViewModel: LobbySettingsViewModel,
     loginViewModel: LoginViewModel,
-    gameViewModel: GameViewModel
+    gameViewModel: GameViewModel,
+    loadingViewModel: LoadingViewModel,
 ) {
 
     val navController = rememberNavController()
+    val loading by loadingViewModel.state.collectAsState()
+
 
     NavHost(navController = navController, startDestination = PermissionErrorScreenRoute) {
         composable<PermissionErrorScreenRoute> {
@@ -49,13 +53,20 @@ fun Navigation(
                 navController = navController,
                 logout = args.logout,
                 state = state,
-                onEvent = loginViewModel::onEvent
+                onEvent = loginViewModel::onEvent,
+                loading = loading,
+                loadingEvent = loadingViewModel::onEvent
+
             )
         }
         composable<MainScreenRoute> {
             val state by mainViewModel.state.collectAsState()
             MainScreen(
-                navController = navController, state = state, onEvent = mainViewModel::onEvent
+                navController = navController,
+                state = state,
+                onEvent = mainViewModel::onEvent,
+                loading = loading,
+                loadingEvent = loadingViewModel::onEvent
             )
         }
         composable<LobbyScreenRoute> {
@@ -65,7 +76,9 @@ fun Navigation(
                 navController = navController,
                 gameId = args.gameId,
                 state = state,
-                onEvent = lobbyViewModel::onEvent
+                onEvent = lobbyViewModel::onEvent,
+                loading = loading,
+                loadingEvent = loadingViewModel::onEvent
             )
         }
         composable<LobbySettingsScreenRoute> {
@@ -84,7 +97,11 @@ fun Navigation(
         composable<GameScreenRoute> {
             val state by gameViewModel.state.collectAsState()
             GameScreen(
-                navController = navController, state = state, onEvent = gameViewModel::onEvent
+                navController = navController,
+                state = state,
+                onEvent = gameViewModel::onEvent,
+                loading = loading,
+                loadingEvent = loadingViewModel::onEvent
             )
         }
     }

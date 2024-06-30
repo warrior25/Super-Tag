@@ -27,29 +27,39 @@ import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.GameStatuses
 import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbySettingsScreenRoute
-import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.ui.components.LobbyActionButtons
 import com.huikka.supertag.ui.components.PlayerListItem
+import com.huikka.supertag.ui.events.LoadingEvent
 import com.huikka.supertag.ui.events.LobbyEvent
+import com.huikka.supertag.ui.state.LoadingState
 import com.huikka.supertag.ui.state.LobbyState
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LobbyScreen(
-    navController: NavController, gameId: String, state: LobbyState, onEvent: (LobbyEvent) -> Unit
+    navController: NavController,
+    gameId: String,
+    state: LobbyState,
+    onEvent: (LobbyEvent) -> Unit,
+    loading: LoadingState,
+    loadingEvent: (LoadingEvent) -> Unit
 ) {
     LaunchedEffect(true) {
         onEvent(LobbyEvent.OnInit(gameId))
     }
     LaunchedEffect(state.isInitialized, state.game?.status) {
         if (state.game?.status == GameStatuses.PLAYING && state.isInitialized) {
+            loadingEvent(LoadingEvent.OnUpdateLoadingStatus(true))
             navController.navigate(GameScreenRoute)
             onEvent(LobbyEvent.OnNavigateAway)
         }
+
+        if (state.players.isNotEmpty() || state.game?.status == GameStatuses.LOBBY) {
+            loadingEvent(LoadingEvent.OnUpdateLoadingStatus(false))
+        }
     }
-    if (state.players.isEmpty() || state.game?.status == GameStatuses.PLAYING) {
-        Loading()
+    if (loading.loading) {
         return
     }
     Scaffold(

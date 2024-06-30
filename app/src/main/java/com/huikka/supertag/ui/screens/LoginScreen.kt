@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,8 +27,9 @@ import androidx.navigation.NavController
 import com.huikka.supertag.R
 import com.huikka.supertag.ui.LoginScreenRoute
 import com.huikka.supertag.ui.MainScreenRoute
-import com.huikka.supertag.ui.components.Loading
+import com.huikka.supertag.ui.events.LoadingEvent
 import com.huikka.supertag.ui.events.LoginEvent
+import com.huikka.supertag.ui.state.LoadingState
 import com.huikka.supertag.ui.state.LoginState
 
 @Composable
@@ -36,8 +38,18 @@ fun LoginScreen(
     logout: Boolean,
     state: LoginState,
     onEvent: (LoginEvent) -> Unit,
+    loading: LoadingState,
+    loadingEvent: (LoadingEvent) -> Unit
 ) {
+    val context = LocalContext.current
+
     LaunchedEffect(Unit) {
+        loadingEvent(
+            LoadingEvent.OnUpdateLoadingStatus(
+                true, text = context.getString(R.string.loading_auth)
+            )
+        )
+
         if (logout && state.isLoggedIn) {
             Log.d("LoginScreen", "logout")
             onEvent(LoginEvent.OnLogout)
@@ -50,13 +62,21 @@ fun LoginScreen(
     LaunchedEffect(state.isInitialized, state.isLoggedIn) {
         if (state.isInitialized && state.isLoggedIn) {
             Log.d("LoginScreen", "navigate to main screen")
+            loadingEvent(
+                LoadingEvent.OnUpdateLoadingStatus(
+                    true, text = context.getString(R.string.loading_mainMenu)
+                )
+            )
             navController.navigate(MainScreenRoute) {
                 popUpTo(LoginScreenRoute()) { inclusive = true }
             }
         }
+
+        if (state.isInitialized && !state.isLoggedIn) {
+            loadingEvent(LoadingEvent.OnUpdateLoadingStatus(false))
+        }
     }
-    if (!state.isInitialized || state.isLoggedIn) {
-        Loading()
+    if (loading.loading) {
         return
     }
 

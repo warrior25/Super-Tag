@@ -61,4 +61,8 @@
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
     <string name="zone">Zone</string>
+    <string name="loading_lobby">Loading the lobby</string>
+    <string name="loading_map">Loading the map</string>
+    <string name="loading_mainMenu">Loading mainmenu</string>
+    <string name="loading_auth">Authenticating</string>
 </resources>

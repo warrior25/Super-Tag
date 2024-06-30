@@ -46,7 +46,6 @@ import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.ZoneTypes
 import com.huikka.supertag.ui.MainScreenRoute
 import com.huikka.supertag.ui.components.ConfirmationDialog
-import com.huikka.supertag.ui.components.Loading
 import com.huikka.supertag.ui.components.hud.ChaserHUD
 import com.huikka.supertag.ui.components.hud.ChaserTimers
 import com.huikka.supertag.ui.components.hud.RunnerHUD
@@ -57,12 +56,18 @@ import com.huikka.supertag.ui.components.map.Player
 import com.huikka.supertag.ui.components.map.Store
 import com.huikka.supertag.ui.components.map.Zone
 import com.huikka.supertag.ui.events.GameEvent
+import com.huikka.supertag.ui.events.LoadingEvent
 import com.huikka.supertag.ui.state.GameState
+import com.huikka.supertag.ui.state.LoadingState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
-    navController: NavController, state: GameState, onEvent: (GameEvent) -> Unit
+    navController: NavController,
+    state: GameState,
+    onEvent: (GameEvent) -> Unit,
+    loading: LoadingState,
+    loadingEvent: (LoadingEvent) -> Unit
 ) {
     val context = LocalContext.current
     var menuExpanded by remember {
@@ -80,9 +85,13 @@ fun GameScreen(
         }
         onEvent(GameEvent.OnInit)
     }
+    LaunchedEffect(state.isInitialized) {
+        if (state.isInitialized) {
+            loadingEvent(LoadingEvent.OnUpdateLoadingStatus(false))
+        }
+    }
 
-    if (!state.isInitialized) {
-        Loading()
+    if (loading.loading) {
         return
     }
 
@@ -147,6 +156,11 @@ fun GameScreen(
                     intent.setAction(ServiceActions.STOP_SERVICE)
                     startForegroundService(context, intent)
                     onEvent(GameEvent.OnLeaveGame)
+                    loadingEvent(
+                        LoadingEvent.OnUpdateLoadingStatus(
+                            true, text = context.getString(R.string.loading_mainMenu)
+                        )
+                    )
                     navController.navigate(MainScreenRoute)
                 },
                 onDismiss = { showLeaveGameDialog = false })
