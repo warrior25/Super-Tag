@@ -6,11 +6,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Zone(
 
-    @SerialName("id") val id: Int? = null,
-    @SerialName("name") val name: String? = null,
-    @SerialName("type") val type: String? = null,
-    @SerialName("latitude") val latitude: Double? = null,
-    @SerialName("longitude") val longitude: Double? = null,
-    @SerialName("radius") val radius: Int? = null,
-    @SerialName("drawable") val drawable: String? = null
+    @SerialName("id") val id: Int = 0,
+    @SerialName("name") val name: String = "",
+    @SerialName("type") val type: String = "",
+    @SerialName("latitude") val latitude: Double = 0.0,
+    @SerialName("longitude") val longitude: Double = 0.0,
+    @SerialName("radius") val radius: Int = 0,
+    @SerialName("drawable") val drawable: String = ""
 )

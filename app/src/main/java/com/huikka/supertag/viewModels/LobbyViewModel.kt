@@ -9,8 +9,8 @@ import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.AuthDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
+import com.huikka.supertag.data.helpers.GameStatus
 import com.huikka.supertag.data.dto.Game
-import com.huikka.supertag.data.helpers.GameStatuses
 import com.huikka.supertag.ui.events.LobbyEvent
 import com.huikka.supertag.ui.state.LobbyState
 import kotlinx.coroutines.CompletableDeferred
@@ -74,21 +74,23 @@ class LobbyViewModel(
         return authDao.getUser()?.id
     }
 
-    private suspend fun getHostStatus() {
-        try {
-            val playerId = getPlayerId()!!
-            val player = playerDao.getPlayerById(playerId)!!
-            _state.update {
-                it.copy(
-                    isHost = player.isHost!!
-                )
-            }
-        } catch (e: Exception) {
-            Log.e("LobbyViewModel", "Failed to get current game info: $e")
-            _state.update {
-                it.copy(
-                    error = "Failed to get current game status"
-                )
+    private fun getHostStatus() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val playerId = getPlayerId()!!
+                val player = playerDao.getPlayerById(playerId)!!
+                _state.update {
+                    it.copy(
+                        isHost = player.isHost
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("LobbyViewModel", "Failed to get current game info: $e")
+                _state.update {
+                    it.copy(
+                        error = "Failed to get current game status"
+                    )
+                }
             }
         }
     }
@@ -96,7 +98,7 @@ class LobbyViewModel(
     private fun startGame() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                gameDao.setGameStatus(state.value.gameId, GameStatuses.PLAYING)
+                gameDao.setGameStatus(state.value.gameId, GameStatus.PLAYING)
             } catch (e: Exception) {
                 Log.e("LobbyViewModel", "Failed to get current game info: $e")
                 _state.update {
@@ -113,7 +115,6 @@ class LobbyViewModel(
             try {
                 val flow = playerDao.getPlayersByGameIdFlow(state.value.gameId)
                 flow.collect { players ->
-                    Log.d("LobbyViewModel", "Players: $players")
                     _state.update {
                         it.copy(
                             players = players

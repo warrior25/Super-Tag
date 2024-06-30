@@ -25,7 +25,7 @@ fun RunnerHUD(money: Int, currentZone: Zone?, activeZones: List<Zone>) {
         CommonHUD(money = money)
         if (currentZone in activeZones) {
             InfoChip(
-                text = currentZone!!.name!!,
+                text = currentZone!!.name,
                 icon = ImageVector.vectorResource(id = R.drawable.location_pin)
             )
         }

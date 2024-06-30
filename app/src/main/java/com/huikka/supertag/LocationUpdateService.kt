@@ -24,10 +24,10 @@ import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dao.ZoneDao
 import com.huikka.supertag.data.dto.Zone
 import com.huikka.supertag.data.helpers.Config
-import com.huikka.supertag.data.helpers.ServiceActions
+import com.huikka.supertag.data.helpers.ServiceAction
 import com.huikka.supertag.data.helpers.ServiceStatus
-import com.huikka.supertag.data.helpers.Sides
-import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.Side
+import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.data.helpers.minute
 import com.instacart.truetime.time.TrueTime
 import kotlinx.coroutines.CoroutineScope
@@ -86,7 +86,7 @@ class LocationUpdateService : Service(), LocationListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ServiceActions.START_SERVICE -> {
+            ServiceAction.START_SERVICE -> {
                 if (ActivityCompat.checkSelfPermission(
                         this, Manifest.permission.ACCESS_FINE_LOCATION
                     ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
@@ -110,7 +110,7 @@ class LocationUpdateService : Service(), LocationListener {
                 ServiceStatus.setServiceRunning(applicationContext, true)
             }
 
-            ServiceActions.STOP_SERVICE -> {
+            ServiceAction.STOP_SERVICE -> {
                 ServiceStatus.setServiceRunning(applicationContext, false)
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelfResult(startId)
@@ -124,8 +124,25 @@ class LocationUpdateService : Service(), LocationListener {
         CoroutineScope(Dispatchers.IO).launch {
             myLocation = loc
             try {
+                var enteredZone: Long? = null
                 val zone = zoneManager.getZoneFromLocation(loc)
                 lastZone = zone
+                val timerDuration = when (lastZone?.type) {
+                    ZoneType.ATM -> Config.ATM_TIME
+
+                    ZoneType.STORE -> Config.STORE_TIME
+
+                    ZoneType.ATTRACTION -> Config.ATTRACTION_TIME
+
+                    else -> 0
+                }
+                if (!isValidZone()) {
+                    isTimerRunning = false
+                    zonePresenceTimer?.cancel()
+                } else if (!isTimerRunning) {
+                    startZonePresenceTimer(timerDuration)
+                    enteredZone = trueTime.now().time
+                }
                 playerDao.updatePlayerLocation(
                     userId,
                     loc.latitude,
@@ -133,26 +150,9 @@ class LocationUpdateService : Service(), LocationListener {
                     loc.accuracy,
                     loc.speed,
                     loc.bearing,
-                    zone?.id
+                    zone?.id,
+                    enteredZone
                 )
-                val timerDuration = when (lastZone?.type) {
-                    ZoneTypes.ATM -> Config.ATM_TIME
-
-                    ZoneTypes.STORE -> Config.STORE_TIME
-
-                    ZoneTypes.ATTRACTION -> Config.ATTRACTION_TIME
-
-                    else -> {
-                        isTimerCancelled = true
-                        zonePresenceTimer?.cancel()
-                        playerDao.clearEnteredZone(userId)
-                        return@launch
-                    }
-                }
-                if (!isTimerRunning && isValidZone()) {
-                    startZonePresenceTimer(timerDuration)
-                    playerDao.setEnteredZone(userId, trueTime.now().time)
-                }
             } catch (e: Exception) {
                 Log.e("LOCATION", "Failed to update location: $e")
             }
@@ -162,19 +162,19 @@ class LocationUpdateService : Service(), LocationListener {
     private suspend fun initData() {
         authDao.awaitCurrentSession()
         userId = authDao.getUser()!!.id
-        gameId = gameDao.getCurrentGameInfo(userId).gameId!!
+        gameId = gameDao.getCurrentGameInfo(userId).gameId
         isRunner = gameDao.getRunnerId(gameId) == userId
-        initialTrackingInterval = gameDao.getInitialTrackingInterval(gameId)!!.toLong()
-        headStart = gameDao.getHeadStart(gameId)!!.toLong()
+        initialTrackingInterval = gameDao.getInitialTrackingInterval(gameId).toLong()
+        headStart = gameDao.getHeadStart(gameId).toLong()
         getZones()
     }
 
     private suspend fun getZones() {
         val zones = zoneDao.getZones()
         for (zone in zones) {
-            if (zone.type == ZoneTypes.ATM || zone.type == ZoneTypes.STORE) {
+            if (zone.type == ZoneType.ATM || zone.type == ZoneType.STORE) {
                 chaserZones.add(zone)
-            } else if (zone.type == ZoneTypes.ATTRACTION) {
+            } else if (zone.type == ZoneType.ATTRACTION) {
                 runnerZones.add(zone)
             }
         }
@@ -191,12 +191,12 @@ class LocationUpdateService : Service(), LocationListener {
                 zone2 = runnerZones.random()
             } while (zone1.id == zone2.id || zone2.id in activeZoneIds)
 
-            activeZoneIds = listOf(zone1.id!!, zone2.id!!)
+            activeZoneIds = listOf(zone1.id, zone2.id)
 
             val nextUpdateTime = trueTime.now().time + Config.RUNNER_ZONE_SHUFFLE_TIME
 
             activeRunnerZonesDao.setActiveRunnerZones(
-                gameId = gameId, zones = listOf(zone1.id!!, zone2.id!!), nextUpdate = nextUpdateTime
+                gameId = gameId, zones = listOf(zone1.id, zone2.id), nextUpdate = nextUpdateTime
             )
 
             delay(Config.RUNNER_ZONE_SHUFFLE_TIME)
@@ -234,6 +234,8 @@ class LocationUpdateService : Service(), LocationListener {
 
             val now = trueTime.now().time
             nextUpdate = trueTime.now().time + initialTrackingInterval * minute
+
+            // TODO: Can crash here if runner has not moved
             runnerDao.setLocation(
                 gameId = gameId,
                 latitude = myLocation.latitude,
@@ -249,15 +251,15 @@ class LocationUpdateService : Service(), LocationListener {
     private fun addMoney() {
         CoroutineScope(Dispatchers.IO).launch {
             val side = if (isRunner) {
-                Sides.Runner
+                Side.Runner
             } else {
-                Sides.Chasers
+                Side.Chasers
             }
 
             val amount = when (lastZone?.type) {
-                ZoneTypes.ATM -> Config.ATM_MONEY
-                ZoneTypes.STORE -> Config.STORE_MONEY
-                ZoneTypes.ATTRACTION -> Config.ATTRACTION_MONEY
+                ZoneType.ATM -> Config.ATM_MONEY
+                ZoneType.STORE -> Config.STORE_MONEY
+                ZoneType.ATTRACTION -> Config.ATTRACTION_MONEY
                 else -> 0
             }
             try {
@@ -269,7 +271,7 @@ class LocationUpdateService : Service(), LocationListener {
     }
 
     private fun isValidZone(): Boolean {
-        return (!isRunner && lastZone?.type in ZoneTypes.CHASER_ZONE_TYPES) || (isRunner && lastZone?.id in activeZoneIds)
+        return (!isRunner && lastZone?.type in ZoneType.CHASER_ZONE_TYPES) || (isRunner && lastZone?.id in activeZoneIds)
     }
 
     private fun startZonePresenceTimer(duration: Long) {
@@ -283,11 +285,8 @@ class LocationUpdateService : Service(), LocationListener {
                 }
 
                 override fun onFinish() {
-                    if (!isTimerCancelled) {
-                        addMoney()
-                    }
+                    addMoney()
                     isTimerRunning = false
-                    isTimerCancelled = false
                 }
             }.start()
         }

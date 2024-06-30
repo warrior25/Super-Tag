@@ -25,7 +25,7 @@ fun PlayerListItem(player: Player, isRunner: Boolean, onClick: () -> Unit) {
         OutlinedButton(onClick = {
             onClick()
         }) {
-            Text(text = player.name!!, fontWeight = fontWeight, fontSize = fontSize)
+            Text(text = player.name, fontWeight = fontWeight, fontSize = fontSize)
         }
     }
 }

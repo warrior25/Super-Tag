@@ -9,11 +9,12 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.ActiveRunnerZonesDao
 import com.huikka.supertag.data.dao.AuthDao
+import com.huikka.supertag.data.dao.CardsDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
 import com.huikka.supertag.data.dto.Game
-import com.huikka.supertag.data.helpers.GameStatuses
+import com.huikka.supertag.data.helpers.GameStatus
 import com.huikka.supertag.ui.events.MainEvent
 import com.huikka.supertag.ui.state.MainState
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +29,8 @@ class MainViewModel(
     private val gameDao: GameDao,
     private val playerDao: PlayerDao,
     private val runnerDao: RunnerDao,
-    private val activeRunnerZonesDao: ActiveRunnerZonesDao
+    private val activeRunnerZonesDao: ActiveRunnerZonesDao,
+    private val cardsDao: CardsDao
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MainState())
@@ -77,7 +79,7 @@ class MainViewModel(
         if (playerId != null) {
             _state.update {
                 it.copy(
-                    username = playerDao.getPlayerById(playerId)!!.name ?: ""
+                    username = playerDao.getPlayerById(playerId)!!.name
                 )
             }
         }
@@ -97,7 +99,7 @@ class MainViewModel(
                 )
                 _state.update {
                     it.copy(
-                        gameStatus = GameStatuses.LOBBY
+                        gameStatus = GameStatus.LOBBY
                     )
                 }
                 delay(1000)
@@ -130,15 +132,16 @@ class MainViewModel(
             try {
                 gameDao.createGame(
                     Game(
-                        id = newId, status = GameStatuses.LOBBY, runnerId = getPlayerId()
+                        id = newId, status = GameStatus.LOBBY, runnerId = getPlayerId()
                     )
                 )
                 playerDao.addToGame(getPlayerId()!!, newId, true)
                 runnerDao.addGame(newId)
-                activeRunnerZonesDao.addRow(newId)
+                activeRunnerZonesDao.addGame(newId)
+                cardsDao.addGame(newId)
                 _state.update {
                     it.copy(
-                        gameStatus = GameStatuses.LOBBY, gameId = newId
+                        gameStatus = GameStatus.LOBBY, gameId = newId
                     )
                 }
                 delay(1000)
@@ -198,7 +201,8 @@ class MainViewModel(
                     myApp.gameDao,
                     myApp.playerDao,
                     myApp.runnerDao,
-                    myApp.activeRunnerZonesDao
+                    myApp.activeRunnerZonesDao,
+                    myApp.cardsDao,
                 ) as T
             }
         }

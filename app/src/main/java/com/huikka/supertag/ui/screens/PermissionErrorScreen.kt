@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.huikka.supertag.R
-import com.huikka.supertag.data.helpers.PermissionErrors
+import com.huikka.supertag.data.helpers.PermissionError
 import com.huikka.supertag.ui.LoginScreenRoute
 import com.huikka.supertag.ui.events.PermissionErrorEvent
 import com.huikka.supertag.ui.state.PermissionErrorState
@@ -40,7 +40,7 @@ fun PermissionErrorScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (state.permissionError == PermissionErrors.NotRequested) {
+        if (state.permissionError == PermissionError.NotRequested) {
             Text(
                 text = stringResource(id = R.string.insufficient_permissions),
                 textAlign = TextAlign.Center
@@ -51,7 +51,7 @@ fun PermissionErrorScreen(
             }) {
                 Text(stringResource(id = R.string.fix_now))
             }
-        } else if (state.permissionError == PermissionErrors.Denied) {
+        } else if (state.permissionError == PermissionError.Denied) {
             Text(
                 text = stringResource(id = R.string.permissions_denied),
                 textAlign = TextAlign.Center

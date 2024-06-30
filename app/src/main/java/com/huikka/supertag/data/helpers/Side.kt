@@ -1,5 +1,5 @@
 package com.huikka.supertag.data.helpers
 
-enum class Sides {
+enum class Side {
     Chasers, Runner
 }

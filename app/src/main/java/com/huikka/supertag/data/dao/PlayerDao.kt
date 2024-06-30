@@ -52,7 +52,8 @@ class PlayerDao(application: STApplication) {
         locationAccuracy: Float,
         speed: Float,
         bearing: Float,
-        zoneId: Int?
+        zoneId: Int?,
+        enteredZone: Long?
     ) {
         db.from("players").update({
             set("latitude", latitude)
@@ -61,6 +62,7 @@ class PlayerDao(application: STApplication) {
             set("speed", speed)
             set("bearing", bearing)
             set("zone_id", zoneId)
+            set("entered_zone", enteredZone)
         }) {
             filter {
                 eq("id", id)
@@ -93,25 +95,5 @@ class PlayerDao(application: STApplication) {
                 eq("id", id)
             }
         }.decodeSingleOrNull<Player>()
-    }
-
-    suspend fun setEnteredZone(id: String, time: Long) {
-        db.from("players").update({
-            set("entered_zone", time)
-        }) {
-            filter {
-                eq("id", id)
-            }
-        }
-    }
-
-    suspend fun clearEnteredZone(id: String) {
-        db.from("players").update({
-            setToNull("entered_zone")
-        }) {
-            filter {
-                eq("id", id)
-            }
-        }
     }
 }

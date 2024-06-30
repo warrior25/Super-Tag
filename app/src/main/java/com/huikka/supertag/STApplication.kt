@@ -3,6 +3,7 @@ package com.huikka.supertag
 import android.app.Application
 import com.huikka.supertag.data.dao.ActiveRunnerZonesDao
 import com.huikka.supertag.data.dao.AuthDao
+import com.huikka.supertag.data.dao.CardsDao
 import com.huikka.supertag.data.dao.GameDao
 import com.huikka.supertag.data.dao.PlayerDao
 import com.huikka.supertag.data.dao.RunnerDao
@@ -20,6 +21,7 @@ class STApplication : Application() {
     val runnerDao by lazy { RunnerDao(this) }
     val zoneDao by lazy { ZoneDao(this) }
     val activeRunnerZonesDao by lazy { ActiveRunnerZonesDao(this) }
+    val cardsDao by lazy { CardsDao(this) }
 
     val trueTime = TrueTimeImpl()
 

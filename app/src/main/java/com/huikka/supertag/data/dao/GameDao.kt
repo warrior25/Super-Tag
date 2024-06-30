@@ -4,8 +4,7 @@ import android.util.Log
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.CurrentGame
 import com.huikka.supertag.data.dto.Game
-import com.huikka.supertag.data.dto.GameStatus
-import com.huikka.supertag.data.helpers.Sides
+import com.huikka.supertag.data.helpers.Side
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
@@ -22,7 +21,7 @@ class GameDao(application: STApplication) {
             filter {
                 eq("id", id)
             }
-        }.decodeSingle<GameStatus>().status
+        }.decodeSingle<Game>().status
     }
 
     suspend fun checkGameExists(id: String): Boolean {
@@ -108,7 +107,7 @@ class GameDao(application: STApplication) {
         }.decodeSingle<CurrentGame>()
     }
 
-    suspend fun getHeadStart(gameId: String): Int? {
+    suspend fun getHeadStart(gameId: String): Int {
         return db.from("games").select(columns = Columns.list("head_start")) {
             filter {
                 eq("id", gameId)
@@ -116,7 +115,7 @@ class GameDao(application: STApplication) {
         }.decodeSingle<Game>().headStart
     }
 
-    suspend fun getInitialTrackingInterval(gameId: String): Int? {
+    suspend fun getInitialTrackingInterval(gameId: String): Int {
         return db.from("games").select(columns = Columns.list("initial_tracking_interval")) {
             filter {
                 eq("id", gameId)
@@ -124,10 +123,10 @@ class GameDao(application: STApplication) {
         }.decodeSingle<Game>().initialTrackingInterval
     }
 
-    suspend fun addMoney(gameId: String, side: Sides, amount: Int) {
-        val newMoney = getMoney(gameId, side)!! + amount
+    suspend fun addMoney(gameId: String, side: Side, amount: Int) {
+        val newMoney = getMoney(gameId, side) + amount
         var column = "chaser_money"
-        if (side == Sides.Runner) {
+        if (side == Side.Runner) {
             column = "runner_money"
         }
         db.from("games").update({
@@ -139,11 +138,11 @@ class GameDao(application: STApplication) {
         }
     }
 
-    suspend fun reduceMoney(gameId: String, side: Sides, amount: Int): Error? {
+    suspend fun reduceMoney(gameId: String, side: Side, amount: Int): Error? {
         return try {
-            val newMoney = getMoney(gameId, side)!! - amount
+            val newMoney = getMoney(gameId, side) - amount
             var column = "chaser_money"
-            if (side == Sides.Runner) {
+            if (side == Side.Runner) {
                 column = "runner_money"
             }
             db.from("games").update({
@@ -159,13 +158,13 @@ class GameDao(application: STApplication) {
         }
     }
 
-    private suspend fun getMoney(gameId: String, side: Sides): Int? {
+    private suspend fun getMoney(gameId: String, side: Side): Int {
         val game = db.from("games").select(columns = Columns.list("chaser_money", "runner_money")) {
             filter {
                 eq("id", gameId)
             }
         }.decodeSingle<Game>()
-        if (side == Sides.Runner) {
+        if (side == Side.Runner) {
             return game.runnerMoney
         }
         return game.chaserMoney

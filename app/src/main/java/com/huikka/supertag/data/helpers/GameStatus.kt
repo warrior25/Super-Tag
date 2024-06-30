@@ -1,6 +1,6 @@
 package com.huikka.supertag.data.helpers
 
-object GameStatuses {
+object GameStatus {
     const val LOBBY = "lobby"
     const val PLAYING = "playing"
 }

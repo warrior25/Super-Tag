@@ -1,11 +1,10 @@
 package com.huikka.supertag.data.dto
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Card(
-    val id: String,
-    val name: String,
-    val price: Int,
-    val icon: Int,
-    val duration: Int = -1,
-    val disabled: Boolean = false
+    @SerialName("game_id") val gameId: String = "",
+    @SerialName("cards_active_until") val cardsActiveUntil: List<Long?>? = null,
 )

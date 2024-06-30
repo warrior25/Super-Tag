@@ -26,12 +26,12 @@ class ActiveRunnerZonesDao(application: STApplication) {
     @OptIn(SupabaseExperimental::class)
     fun getActiveRunnerZonesFlow(gameId: String): Flow<ActiveRunnerZones> {
         return db.from("active_runner_zones")
-            .selectSingleValueAsFlow(PrimaryKey("game_id") { it.gameId!! }) {
+            .selectSingleValueAsFlow(PrimaryKey("game_id") { it.gameId }) {
                 eq("game_id", gameId)
             }
     }
 
-    suspend fun addRow(newId: String) {
+    suspend fun addGame(newId: String) {
         db.from("active_runner_zones").insert(ActiveRunnerZones(gameId = newId))
     }
 }

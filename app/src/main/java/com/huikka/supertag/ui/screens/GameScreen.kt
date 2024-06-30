@@ -4,65 +4,77 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Badge
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.huikka.supertag.LocationUpdateService
 import com.huikka.supertag.R
-import com.huikka.supertag.data.helpers.ServiceActions
+import com.huikka.supertag.data.helpers.ServiceAction
 import com.huikka.supertag.data.helpers.ServiceStatus
-import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.Side
 import com.huikka.supertag.ui.MainScreenRoute
 import com.huikka.supertag.ui.components.ConfirmationDialog
 import com.huikka.supertag.ui.components.Loading
+import com.huikka.supertag.ui.components.cards.Cards
 import com.huikka.supertag.ui.components.hud.ChaserHUD
 import com.huikka.supertag.ui.components.hud.ChaserTimers
 import com.huikka.supertag.ui.components.hud.RunnerHUD
 import com.huikka.supertag.ui.components.hud.RunnerTimers
-import com.huikka.supertag.ui.components.map.ATM
-import com.huikka.supertag.ui.components.map.Attraction
-import com.huikka.supertag.ui.components.map.Player
-import com.huikka.supertag.ui.components.map.Store
+import com.huikka.supertag.ui.components.map.ChaserMapContent
+import com.huikka.supertag.ui.components.map.RunnerMapContent
 import com.huikka.supertag.ui.components.map.Zone
 import com.huikka.supertag.ui.events.GameEvent
+import com.huikka.supertag.ui.state.CardState
 import com.huikka.supertag.ui.state.GameState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
-    navController: NavController, state: GameState, onEvent: (GameEvent) -> Unit
+    navController: NavController,
+    state: GameState,
+    cardStates: List<CardState>,
+    onEvent: (GameEvent) -> Unit
 ) {
     val context = LocalContext.current
     var menuExpanded by remember {
@@ -72,10 +84,13 @@ fun GameScreen(
         mutableStateOf(false)
     }
 
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+
     LaunchedEffect(true) {
         if (!ServiceStatus.isServiceRunning(context)) {
             val intent = Intent(context, LocationUpdateService::class.java)
-            intent.setAction(ServiceActions.START_SERVICE)
+            intent.setAction(ServiceAction.START_SERVICE)
             startForegroundService(context, intent)
         }
         onEvent(GameEvent.OnInit)
@@ -91,10 +106,10 @@ fun GameScreen(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             titleContentColor = MaterialTheme.colorScheme.primary,
         ), title = {
-            if (state.isRunner) {
-                Text(text = stringResource(id = R.string.runner))
+            if (state.side == Side.Runner) {
+                Text(text = "${stringResource(id = R.string.runner)} (${state.gameId})")
             } else {
-                Text(text = stringResource(id = R.string.chaser))
+                Text(text = "${stringResource(id = R.string.chaser)} (${state.gameId})")
             }
         }, actions = {
             IconButton(onClick = { menuExpanded = !menuExpanded }) {
@@ -118,21 +133,21 @@ fun GameScreen(
         })
     }, bottomBar = {
         BottomAppBar(actions = {
-            if (state.isRunner) {
+            if (state.side == Side.Runner) {
                 RunnerTimers(
-                    zoneUpdateTime = state.zoneUpdateTime,
+                    zoneShuffleTimer = state.zoneShuffleTimer,
                     zonePresenceTimer = state.zonePresenceTimer
                 )
             } else {
                 ChaserTimers(
-                    runnerLocationUpdateTime = state.runnerLocationUpdateTime,
+                    runnerLocationUpdateTimer = state.runnerLocationUpdateTimer,
                     zonePresenceTimer = state.zonePresenceTimer,
                 )
             }
         })
     }) { padding ->
         if (showLeaveGameDialog) {
-            val text = if (state.isRunner) {
+            val text = if (state.side == Side.Runner) {
                 stringResource(id = R.string.leave_game_confirm_text_runner)
             } else {
                 stringResource(id = R.string.leave_game_confirm_text_chaser)
@@ -144,7 +159,7 @@ fun GameScreen(
                 dismissText = stringResource(id = R.string.cancel),
                 onConfirm = {
                     val intent = Intent(context, LocationUpdateService::class.java)
-                    intent.setAction(ServiceActions.STOP_SERVICE)
+                    intent.setAction(ServiceAction.STOP_SERVICE)
                     startForegroundService(context, intent)
                     onEvent(GameEvent.OnLeaveGame)
                     navController.navigate(MainScreenRoute)
@@ -172,54 +187,31 @@ fun GameScreen(
                     )
                 )
             }
+            val uiSettings by remember {
+                mutableStateOf(
+                    MapUiSettings(
+                        zoomControlsEnabled = false
+                    )
+                )
+            }
 
             Box {
                 GoogleMap(
                     modifier = Modifier.fillMaxSize(),
                     cameraPositionState = cameraPositionState,
                     properties = properties,
+                    uiSettings = uiSettings
                 ) {
                     Zone(zone = state.playingArea)
 
-                    if (state.isRunner) {
-                        for (zone in state.activeRunnerZones) {
-                            Attraction(zone = zone)
-                        }
+                    if (state.side == Side.Runner) {
+                        RunnerMapContent(state = state, cardStates = cardStates)
                     } else {
-                        for (zone in state.chaserZones) {
-                            if (zone.type == ZoneTypes.ATM) {
-                                ATM(zone = zone)
-                            } else if (zone.type == ZoneTypes.STORE) {
-                                Store(zone = zone)
-                            }
-                        }
-                        if (state.runner?.latitude != null) {
-                            Player(
-                                name = state.runnerName,
-                                role = stringResource(id = R.string.runner),
-                                latitude = state.runner.latitude,
-                                longitude = state.runner.longitude!!,
-                                accuracy = state.runner.locationAccuracy!!.toDouble(),
-                                icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_runner)
-                            )
-                        }
-                        for (player in state.players) {
-                            if (player.id !in listOf(state.runnerId, state.userId)) {
-                                Player(
-                                    name = player.name!!,
-                                    role = stringResource(id = R.string.chaser),
-                                    latitude = player.latitude!!,
-                                    longitude = player.longitude!!,
-                                    accuracy = player.locationAccuracy!!.toDouble(),
-                                    icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_player),
-                                    color = Color.Magenta
-                                )
-                            }
-                        }
+                        ChaserMapContent(state = state, cardStates = cardStates)
                     }
                 }
 
-                if (state.isRunner) {
+                if (state.side == Side.Runner) {
                     RunnerHUD(
                         money = state.money,
                         currentZone = state.currentZone,
@@ -227,6 +219,51 @@ fun GameScreen(
                     )
                 } else {
                     ChaserHUD(money = state.money, currentZone = state.currentZone)
+                }
+
+                Box(modifier = Modifier.align(Alignment.BottomEnd)) {
+                    FloatingActionButton(
+                        onClick = { showBottomSheet = true }, modifier = Modifier.padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.cards),
+                            contentDescription = "Cards"
+                        )
+                    }
+                    if (state.activeCards > 0) {
+                        Badge(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(14.dp)
+                        ) {
+                            Text(text = state.activeCards.toString())
+                        }
+                    }
+                }
+
+                if (showBottomSheet) {
+                    ModalBottomSheet(
+                        onDismissRequest = { showBottomSheet = false }, sheetState = sheetState
+                    ) {
+                        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                            Text(
+                                text = stringResource(id = R.string.cards),
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth(),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+                            Cards(cardStates = cardStates,
+                                side = state.side,
+                                cardActions = { cardIndex ->
+                                    onEvent(
+                                        GameEvent.OnCardActivate(cardIndex)
+                                    )
+                                })
+                        }
+                    }
                 }
             }
         }

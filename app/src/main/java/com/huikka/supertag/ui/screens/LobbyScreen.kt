@@ -24,7 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.huikka.supertag.R
-import com.huikka.supertag.data.helpers.GameStatuses
+import com.huikka.supertag.data.helpers.GameStatus
 import com.huikka.supertag.ui.GameScreenRoute
 import com.huikka.supertag.ui.LobbySettingsScreenRoute
 import com.huikka.supertag.ui.components.Loading
@@ -43,7 +43,7 @@ fun LobbyScreen(
         onEvent(LobbyEvent.OnInit(gameId))
     }
     LaunchedEffect(state.isInitialized, state.game?.status) {
-        if (state.game?.status == GameStatuses.PLAYING && state.isInitialized) {
+        if (state.game?.status == GameStatus.PLAYING && state.isInitialized) {
             navController.navigate(GameScreenRoute)
             onEvent(LobbyEvent.OnNavigateAway)
         }
@@ -68,9 +68,9 @@ fun LobbyScreen(
                     navController.navigate(
                         LobbySettingsScreenRoute(
                             state.gameId,
-                            state.game!!.headStart!!,
-                            state.game.runnerMoney!!,
-                            state.game.chaserMoney!!
+                            state.game!!.headStart,
+                            state.game.runnerMoney,
+                            state.game.chaserMoney
                         )
                     )
                 })
@@ -99,7 +99,7 @@ fun LobbyScreen(
                             player = player, isRunner = player.id == state.game!!.runnerId
                         ) {
                             if (state.isHost) {
-                                onEvent(LobbyEvent.OnRunnerChange(player.id!!))
+                                onEvent(LobbyEvent.OnRunnerChange(player.id))
                             }
                         }
                     }

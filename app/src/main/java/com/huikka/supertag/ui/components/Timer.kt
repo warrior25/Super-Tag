@@ -1,16 +1,12 @@
 package com.huikka.supertag.ui.components
 
-import android.os.CountDownTimer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,47 +32,17 @@ import kotlin.math.sin
 
 @Composable
 fun Timer(
-    startTime: Long,
+    currentTime: Long,
     totalTime: Long,
-    handleColor: Color,
-    inactiveBarColor: Color,
-    activeBarColor: Color,
+    handleColor: Color = MaterialTheme.colorScheme.primary,
+    inactiveBarColor: Color = Color.Gray,
+    activeBarColor: Color = MaterialTheme.colorScheme.secondary,
     modifier: Modifier = Modifier,
-    initialValue: Float = 1f,
     strokeWidth: Dp = 5.dp,
     title: String
 ) {
     var size by remember {
         mutableStateOf(IntSize.Zero)
-    }
-    var value by remember {
-        mutableFloatStateOf(initialValue)
-    }
-    var currentTime by remember {
-        mutableLongStateOf(0L)
-    }
-
-    val countDownTimer = object : CountDownTimer(startTime, 1000) {
-        override fun onTick(millisUntilFinished: Long) {
-            currentTime = millisUntilFinished
-            value = currentTime / totalTime.toFloat()
-        }
-
-        override fun onFinish() {
-
-        }
-    }
-
-    DisposableEffect(true) {
-        countDownTimer.start()
-        onDispose {
-            countDownTimer.cancel()
-        }
-    }
-
-    LaunchedEffect(startTime) {
-        countDownTimer.cancel()
-        countDownTimer.start()
     }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.onSizeChanged { size = it }) {
@@ -92,13 +58,13 @@ fun Timer(
             drawArc(
                 color = activeBarColor,
                 startAngle = -215f,
-                sweepAngle = 250f * value,
+                sweepAngle = 250f * currentTime / totalTime.toFloat(),
                 useCenter = false,
                 size = Size(size.width.toFloat(), size.height.toFloat()),
                 style = Stroke(strokeWidth.toPx(), cap = StrokeCap.Round)
             )
             val center = Offset(size.width / 2f, size.height / 2f)
-            val beta = (250f * value + 145f) * (PI / 180f).toFloat()
+            val beta = (250f * currentTime / totalTime.toFloat() + 145f) * (PI / 180f).toFloat()
             val r = size.width / 2f
             val a = cos(beta) * r
             val b = sin(beta) * r

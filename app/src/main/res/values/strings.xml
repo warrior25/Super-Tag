@@ -61,4 +61,12 @@
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
     <string name="zone">Zone</string>
+    <string name="cards">Cards</string>
+    <string name="card1_title">Live location</string>
+    <string name="card1_description">Shows runners live location</string>
+    <string name="earning_money">Earning</string>
+    <string name="card2_title">Hide my location</string>
+    <string name="card2_description">Hides your location to the chasers</string>
+    <string name="card3_title">Reveal chasers</string>
+    <string name="card3_description">Show chasers\' locations</string>
 </resources>

@@ -4,7 +4,7 @@ import android.location.Location
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dao.ZoneDao
 import com.huikka.supertag.data.dto.Zone
-import com.huikka.supertag.data.helpers.ZoneTypes
+import com.huikka.supertag.data.helpers.ZoneType
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -33,14 +33,14 @@ class ZoneManager(application: STApplication) {
     private fun isLocationInZone(
         zone: Zone, loc: Location
     ): Boolean {
-        val distance = haversine(zone.latitude!!, zone.longitude!!, loc.latitude, loc.longitude)
-        return distance <= zone.radius!! + loc.accuracy
+        val distance = haversine(zone.latitude, zone.longitude, loc.latitude, loc.longitude)
+        return distance <= zone.radius + loc.accuracy
     }
 
     suspend fun getZoneFromLocation(loc: Location): Zone? {
         val zones = zoneDao.getZones()
         for (zone in zones) {
-            if (isLocationInZone(zone, loc) && zone.type != ZoneTypes.PLAYING_AREA) {
+            if (isLocationInZone(zone, loc) && zone.type != ZoneType.PLAYING_AREA) {
                 return zone
             }
         }
