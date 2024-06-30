@@ -67,4 +67,6 @@
     <string name="earning_money">Earning</string>
     <string name="card2_title">Hide my location</string>
     <string name="card2_description">Hides your location to the chasers</string>
+    <string name="card3_title">Reveal chasers</string>
+    <string name="card3_description">Show chasers\' locations</string>
 </resources>

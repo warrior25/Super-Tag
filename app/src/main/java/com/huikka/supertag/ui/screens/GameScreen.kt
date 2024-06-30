@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -42,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startForegroundService
 import androidx.navigation.NavController
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
@@ -55,7 +53,6 @@ import com.huikka.supertag.R
 import com.huikka.supertag.data.helpers.ServiceAction
 import com.huikka.supertag.data.helpers.ServiceStatus
 import com.huikka.supertag.data.helpers.Side
-import com.huikka.supertag.data.helpers.ZoneType
 import com.huikka.supertag.ui.MainScreenRoute
 import com.huikka.supertag.ui.components.ConfirmationDialog
 import com.huikka.supertag.ui.components.Loading
@@ -64,10 +61,8 @@ import com.huikka.supertag.ui.components.hud.ChaserHUD
 import com.huikka.supertag.ui.components.hud.ChaserTimers
 import com.huikka.supertag.ui.components.hud.RunnerHUD
 import com.huikka.supertag.ui.components.hud.RunnerTimers
-import com.huikka.supertag.ui.components.map.ATM
-import com.huikka.supertag.ui.components.map.Attraction
-import com.huikka.supertag.ui.components.map.Player
-import com.huikka.supertag.ui.components.map.Store
+import com.huikka.supertag.ui.components.map.ChaserMapContent
+import com.huikka.supertag.ui.components.map.RunnerMapContent
 import com.huikka.supertag.ui.components.map.Zone
 import com.huikka.supertag.ui.events.GameEvent
 import com.huikka.supertag.ui.state.CardState
@@ -210,40 +205,9 @@ fun GameScreen(
                     Zone(zone = state.playingArea)
 
                     if (state.side == Side.Runner) {
-                        for (zone in state.activeRunnerZones) {
-                            Attraction(zone = zone)
-                        }
+                        RunnerMapContent(state = state, cardStates = cardStates)
                     } else {
-                        for (zone in state.chaserZones) {
-                            if (zone.type == ZoneType.ATM) {
-                                ATM(zone = zone)
-                            } else if (zone.type == ZoneType.STORE) {
-                                Store(zone = zone)
-                            }
-                        }
-                        if (state.runner?.latitude != null && cardStates[1].activeUntil == null) {
-                            Player(
-                                name = state.runnerName,
-                                role = stringResource(id = R.string.runner),
-                                latitude = state.runner.latitude,
-                                longitude = state.runner.longitude!!,
-                                accuracy = state.runner.locationAccuracy!!.toDouble(),
-                                icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_runner)
-                            )
-                        }
-                        for (player in state.players) {
-                            if (player.id !in listOf(state.runnerId, state.userId)) {
-                                Player(
-                                    name = player.name,
-                                    role = stringResource(id = R.string.chaser),
-                                    latitude = player.latitude!!,
-                                    longitude = player.longitude!!,
-                                    accuracy = player.locationAccuracy!!.toDouble(),
-                                    icon = BitmapDescriptorFactory.fromResource(R.drawable.marker_player),
-                                    color = Color.Magenta
-                                )
-                            }
-                        }
+                        ChaserMapContent(state = state, cardStates = cardStates)
                     }
                 }
 
@@ -298,7 +262,6 @@ fun GameScreen(
                                         GameEvent.OnCardActivate(cardIndex)
                                     )
                                 })
-
                         }
                     }
                 }

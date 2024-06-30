@@ -17,5 +17,11 @@ val cards = listOf(
         cost = 200,
         timerState = TimerState(totalTime = 5 * minute),
         side = Side.Runner
+    ), CardState(
+        titleResId = R.string.card3_title,
+        descriptionResId = R.string.card3_description,
+        cost = 300,
+        timerState = TimerState(totalTime = 5 * minute),
+        side = Side.Runner
     )
 )

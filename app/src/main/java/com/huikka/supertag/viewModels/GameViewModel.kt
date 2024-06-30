@@ -52,7 +52,7 @@ class GameViewModel(
     )
     val cardStates = _cardStates.asStateFlow()
 
-    private val cardActions = listOf({ updateLiveRunnerLocation(null) }, {})
+    private val cardActions = listOf({ updateLiveRunnerLocation(null) }, {}, {})
 
     fun onEvent(event: GameEvent) {
         when (event) {

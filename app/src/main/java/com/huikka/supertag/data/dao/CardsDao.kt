@@ -2,6 +2,7 @@ package com.huikka.supertag.data.dao
 
 import com.huikka.supertag.STApplication
 import com.huikka.supertag.data.dto.Card
+import com.huikka.supertag.data.helpers.cards
 import io.github.jan.supabase.annotations.SupabaseExperimental
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
@@ -15,7 +16,7 @@ class CardsDao(application: STApplication) {
     private val db: Postgrest = application.supabase.postgrest
 
     suspend fun addGame(gameId: String) {
-        db.from("cards").insert(Card(gameId, listOf(null, null)))
+        db.from("cards").insert(Card(gameId, List(cards.size) { null }))
     }
 
     suspend fun updateCardsStatus(gameId: String, status: List<Long?>) {
