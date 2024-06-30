@@ -27,7 +27,9 @@ import com.huikka.supertag.ui.events.GameEvent
 import com.huikka.supertag.ui.state.GameState
 import com.huikka.supertag.ui.state.TimerState
 import com.instacart.truetime.time.TrueTime
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -43,6 +45,11 @@ class GameViewModel(
     private val cardsDao: CardsDao,
     private val trueTime: TrueTime
 ) : ViewModel() {
+
+    private val gameDataCollected = CompletableDeferred<Unit>()
+    private val playerDataCollected = CompletableDeferred<Unit>()
+    private val runnerDataCollected = CompletableDeferred<Unit>()
+    private val activeRunnerZonesCollected = CompletableDeferred<Unit>()
 
     private val _state = MutableStateFlow(GameState())
     val state = _state.asStateFlow()
@@ -69,9 +76,17 @@ class GameViewModel(
             getZones()
             getRunnerData()
             listenToGameDataChanges()
+            val playingArea = zoneDao.getPlayingArea()
+
+            awaitAll(
+                gameDataCollected,
+                playerDataCollected,
+                if (state.value.side == Side.Runner) activeRunnerZonesCollected else runnerDataCollected
+            )
+
             _state.update {
                 it.copy(
-                    playingArea = zoneDao.getPlayingArea()
+                    playingArea = playingArea, isInitialized = true
                 )
             }
         }
@@ -253,6 +268,7 @@ class GameViewModel(
                 }
             }
         }
+        gameDataCollected.complete(Unit)
     }
 
     private suspend fun updatePlayers(players: List<Player>) {
@@ -288,6 +304,7 @@ class GameViewModel(
             val runner = players.find { it.id == state.value.runnerId }!!
             updateLiveRunnerLocation(runner)
         }
+        playerDataCollected.complete(Unit)
     }
 
     private fun calculateZonePresenceTime(zone: Zone, enterTime: Long): Pair<Long, Long> {
@@ -323,6 +340,7 @@ class GameViewModel(
                 activeRunnerZones = activeZones, isInitialized = true
             )
         }
+        activeRunnerZonesCollected.complete(Unit)
     }
 
     private fun updateRunner(runner: Runner) {
@@ -337,6 +355,7 @@ class GameViewModel(
                 runner = runner, isInitialized = true
             )
         }
+        runnerDataCollected.complete(Unit)
     }
 
     private fun leaveGame() {
@@ -345,6 +364,11 @@ class GameViewModel(
                 gameDao.removeGame(state.value.gameId)
             } else {
                 playerDao.removeFromGame(state.value.userId)
+            }
+            _state.update {
+                it.copy(
+                    isInitialized = false
+                )
             }
         }
     }
