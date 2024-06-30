@@ -48,7 +48,7 @@ fun LobbyScreen(
             onEvent(LobbyEvent.OnNavigateAway)
         }
     }
-    if (state.players.isEmpty()) {
+    if (!state.isInitialized) {
         Loading()
         return
     }
